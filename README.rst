@@ -1,2 +1,2 @@
-.. image:: https://img.shields.io/circleci/ /github/RedSparr0w/node-csgo-parser.svg
+.. image:: https://img.shields.io/circleci/project/github/peter-wangxu/persist-queue.svg
     :target: https://github.com/peter-wangxu/persist-queue
