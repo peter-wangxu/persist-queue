@@ -1,0 +1,6 @@
+flake8
+python-subunit
+eventlet
+os-testr
+testrepository
+virtualenv
