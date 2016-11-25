@@ -4,6 +4,7 @@
 import os
 import pickle
 import random
+import shutil
 import tempfile
 import unittest
 from threading import Thread
@@ -16,8 +17,7 @@ class PersistTest(unittest.TestCase):
         self.path = tempfile.mkdtemp(suffix='persistqueue')
 
     def tearDown(self):
-        # shutil.rmtree(cls.path, ignore_errors=True)
-        pass
+        shutil.rmtree(self.path, ignore_errors=True)
 
     def test_open_close_single(self):
         """Write 1 item, close, reopen checking if same item is there"""
