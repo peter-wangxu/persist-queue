@@ -83,7 +83,7 @@ class Queue(object):
             n = self._qsize()
         return n
 
-    def _qsize(self, len=len):
+    def _qsize(self):
         return self.info['size']
 
     def put(self, item, block=True, timeout=True):

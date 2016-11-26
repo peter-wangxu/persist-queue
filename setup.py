@@ -14,7 +14,7 @@ setup(
     author_email='wangxu198709@gmail.com',
     maintainer='Peter Wang',
     maintainer_email='wangxu198709@gmail.com',
-    license='Apache V2',
+    license='Apache License Version 2.0',
     packages=find_packages(),
     platforms=["all"],
     url='http://github.com/peter-wangxu/persistqueue',
