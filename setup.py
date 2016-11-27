@@ -17,7 +17,7 @@ setup(
     license='Apache License Version 2.0',
     packages=find_packages(),
     platforms=["all"],
-    url='http://github.com/peter-wangxu/persistqueue',
+    url='http://github.com/peter-wangxu/persist-queue',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Operating System :: POSIX',
