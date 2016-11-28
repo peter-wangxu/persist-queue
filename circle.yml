@@ -1,0 +1,13 @@
+machine:
+  post:
+    - pyenv global 2.7.12 3.4.4 3.5.2
+
+test:
+  post:
+    - bash <(curl -s https://codecov.io/bash) -cF python
+
+general:
+  artifacts:
+    - ".coverage" # relative to the build directory
+    - "coverage.xml" # relative to the user's home directory
+    - "htmlcov" # a single file, relative to the build directory
