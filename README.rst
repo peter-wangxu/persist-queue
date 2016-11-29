@@ -7,6 +7,9 @@ persist-queue - A thread-safe, disk-based queue for Python
 .. image:: https://img.shields.io/codecov/c/github/peter-wangxu/persist-queue.svg
     :target: https://github.com/peter-wangxu/persist-queue
 
+.. image:: https://img.shields.io/pypi/v/persist-queue.svg
+    :target: https://pypi.python.org/pypi/persist-queue
+
 This project is based on the achievements of `python-pqueue <https://github.com/balena/python-pqueue>`_
 and `queuelib <https://github.com/scrapy/queuelib>`_
 
@@ -17,17 +20,17 @@ The goals is to achieve following requirements:
 * Recoverable: Items can be read after process restart.
 * Green-compatible: It can be used in ``greenlet`` or ``eventlet`` environment.
 
-While *queuelib* and *python-pqueue* cannot fulfil all of above. After some try, I found it's hard achieve based on their current
-implementation without huge code change. this is the inspiration to start this project.
+While *queuelib* and *python-pqueue* cannot fulfil all of above. After some try, I found it's hard to achieve based on their current
+implementation without huge code change. this is the motivation to start this project.
 
-Besides, persist-queue can serialize any object instances supported by python *pickle* object serialization module.
+Besides, *persist-queue* can serialize any object instances supported by python *pickle* object serialization module.
 To support customized objects, please refer to `Pickling and unpickling extension types(Python2) <https://docs.python.org/2/library/pickle.html#pickling-and-unpickling-normal-class-instances>`_
 and `Pickling Class Instances(Python3) <https://docs.python.org/3/library/pickle.html#pickling-class-instances>`_
 
 Requirements
 ------------
-* Python 2.7 or Python3.X
-* Fully support for Any POSIX-compatible OS(like Linux, Unix)
+* Python 2.7 or Python 3.x.
+* Fully support for Linux and Windows.
 
 Installation
 ------------
@@ -70,7 +73,6 @@ Close the python console, and then we restart the queue from the same path,
 
     >>> from persistqueue import Queue
     >>> q = Queue('mypath')
-    >>> q.get()
     >>> q.get()
     'b'
     >>> q.task_done()
@@ -136,14 +138,11 @@ enhance this project with you :).
 
 License
 -------
-Apache License Version 2.0
+
+`Apache License Version 2.0 <LICENSE>`_
 
 
 FAQ
 ---
-
-#. **WindowsError: [Error 183]** raised when using persist-queue on Windows.
-    It's a known issue, since Windows cannot overwrite an existing opening file. For now, Please only
-    use it in Linux/Unix/Mac environment.
 
 
