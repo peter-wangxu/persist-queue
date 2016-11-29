@@ -1,0 +1,6 @@
+[run]
+source = persistqueue
+branch = True
+include = persistqueue/*
+[xml]
+output = coverage.xml

@@ -1,7 +1,7 @@
 # coding=utf-8
 __author__ = 'Peter Wang'
 __license__ = 'Apache License Version 2.0'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 import sys  # noqa
 if sys.version_info < (3, 0):
