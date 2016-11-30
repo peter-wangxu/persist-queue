@@ -20,9 +20,10 @@ setup(
     url='http://github.com/peter-wangxu/persist-queue',
     classifiers=[
         'Development Status :: 4 - Beta',
-        'Operating System :: POSIX',
+        'Operating System :: OS Independent',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python',
         'Programming Language :: Python :: Implementation',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',

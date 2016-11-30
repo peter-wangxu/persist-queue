@@ -8,7 +8,7 @@ import sys
 import tempfile
 
 import threading
-import time as _time
+from time import time as _time
 
 if sys.version_info < (3, 0):
     from Queue import Empty, Full
@@ -17,9 +17,8 @@ else:
 
 
 def _truncate(fn, length):
-    fd = os.open(fn, os.O_RDWR)
-    os.ftruncate(fd, length)
-    os.close(fd)
+    with open(fn, 'ab+') as f:
+        f.truncate(length)
 
 
 class Queue(object):
@@ -86,7 +85,7 @@ class Queue(object):
     def _qsize(self):
         return self.info['size']
 
-    def put(self, item, block=True, timeout=True):
+    def put(self, item, block=True, timeout=None):
         "Interface for putting item in disk-based queue."
         self.not_full.acquire()
         try:
@@ -218,7 +217,14 @@ class Queue(object):
         os.write(tmpfd, pickle.dumps(self.info))
         os.close(tmpfd)
         # POSIX requires that 'rename' is an atomic operation
-        os.rename(tmpfn, self._infopath())
+        try:
+            os.rename(tmpfn, self._infopath())
+        except OSError as e:
+            if getattr(e, 'winerror', None) == 183:
+                os.remove(self._infopath())
+                os.rename(tmpfn, self._infopath())
+            else:
+                raise e
 
     def _qfile(self, number):
         return os.path.join(self.path, 'q%05d' % number)
