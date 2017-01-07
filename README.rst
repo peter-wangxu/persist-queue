@@ -1,7 +1,10 @@
 persist-queue - A thread-safe, disk-based queue for Python
 ==========================================================
 
-.. image:: https://img.shields.io/circleci/project/github/peter-wangxu/persist-queue.svg
+.. image:: https://img.shields.io/circleci/project/github/peter-wangxu/persist-queue.svg?label=Linux%20%26%20Mac
+    :target: https://github.com/peter-wangxu/persist-queue
+
+.. image:: https://img.shields.io/appveyor/ci/peter-wangxu/persist-queue.svg?label=Windows
     :target: https://github.com/peter-wangxu/persist-queue
 
 .. image:: https://img.shields.io/codecov/c/github/peter-wangxu/persist-queue.svg
