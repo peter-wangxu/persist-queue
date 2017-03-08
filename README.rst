@@ -1,14 +1,14 @@
 persist-queue - A thread-safe, disk-based queue for Python
 ==========================================================
 
-.. image:: https://img.shields.io/circleci/project/github/peter-wangxu/persist-queue.svg?label=Linux%20%26%20Mac
-    :target: https://github.com/peter-wangxu/persist-queue
+.. image:: https://img.shields.io/circleci/project/github/peter-wangxu/persist-queue/master.svg?label=Linux%20%26%20Mac
+    :target: https://circleci.com/gh/peter-wangxu/persist-queue
 
-.. image:: https://img.shields.io/appveyor/ci/peter-wangxu/persist-queue.svg?label=Windows
-    :target: https://github.com/peter-wangxu/persist-queue
+.. image:: https://img.shields.io/appveyor/ci/peter-wangxu/persist-queue/master.svg?label=Windows
+    :target: https://ci.appveyor.com/project/peter-wangxu/persist-queue
 
-.. image:: https://img.shields.io/codecov/c/github/peter-wangxu/persist-queue.svg
-    :target: https://github.com/peter-wangxu/persist-queue
+.. image:: https://img.shields.io/codecov/c/github/peter-wangxu/persist-queue/master.svg
+    :target: https://codecov.io/gh/peter-wangxu/persist-queue
 
 .. image:: https://img.shields.io/pypi/v/persist-queue.svg
     :target: https://pypi.python.org/pypi/persist-queue
@@ -110,7 +110,7 @@ Tests
 
 *persist-queue* use ``tox`` to trigger tests.
 
-to trigger tests based on python2.7/python3.4/python3.5, use:
+to trigger tests based on python2.7/python3.x, use:
 
 .. code-block:: console
 
@@ -124,6 +124,9 @@ to trigger tests based on python2.7/python3.4/python3.5, use:
 
     tox -e py35
 
+.. code-block:: console
+
+    tox -e py36
 
 to trigger pep8 check, use:
 
@@ -131,6 +134,8 @@ to trigger pep8 check, use:
 
    tox -e pep8
 
+
+`pyenv <https://github.com/pyenv/pyenv>`_ is usually a helpful tool to manage multiple versions of Python.
 
 Contribution
 ------------
