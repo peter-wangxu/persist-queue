@@ -26,14 +26,15 @@ The goals is to achieve following requirements:
 While *queuelib* and *python-pqueue* cannot fulfil all of above. After some try, I found it's hard to achieve based on their current
 implementation without huge code change. this is the motivation to start this project.
 
-Besides, *persist-queue* can serialize any object instances supported by python *pickle* object serialization module.
+*persist-queue* use *pickle* object serialization module to support object instances.
 To support customized objects, please refer to `Pickling and unpickling extension types(Python2) <https://docs.python.org/2/library/pickle.html#pickling-and-unpickling-normal-class-instances>`_
 and `Pickling Class Instances(Python3) <https://docs.python.org/3/library/pickle.html#pickling-class-instances>`_
 
 Requirements
 ------------
 * Python 2.7 or Python 3.x.
-* Fully support for Linux and Windows.
+* Full support for Linux.
+* Windows support (with `Caution`_).
 
 Installation
 ------------
@@ -137,6 +138,13 @@ to trigger pep8 check, use:
 
 `pyenv <https://github.com/pyenv/pyenv>`_ is usually a helpful tool to manage multiple versions of Python.
 
+Caution
+-------
+
+Currently, the atomic operation is not supported on Windows due to the limitation of Python's `os.rename <https://docs.python.org/2/library/os.html#os.rename>`_,
+That's saying, the data in queue could be in unreadable state when an incidential failure occurs during ``Queue.task_done``.
+**DO NOT PUT ANY CRITICAL DATA ON QUEUE WHEN RUNNING ON WINDOWS**.
+
 Contribution
 ------------
 
@@ -147,7 +155,7 @@ enhance this project with you :).
 License
 -------
 
-`Apache License Version 2.0 <LICENSE>`_
+`BSD <LICENSE>`_
 
 
 FAQ
