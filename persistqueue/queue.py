@@ -4,16 +4,11 @@
 
 import os
 import pickle
-import sys
 import tempfile
 
 import threading
 from time import time as _time
-
-if sys.version_info < (3, 0):
-    from Queue import Empty, Full
-else:
-    from queue import Empty, Full
+from persistqueue.exceptions import Empty, Full
 
 
 def _truncate(fn, length):
