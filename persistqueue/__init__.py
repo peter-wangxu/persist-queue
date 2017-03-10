@@ -1,6 +1,6 @@
 # coding=utf-8
 __author__ = 'Peter Wang'
-__license__ = 'Apache License Version 2.0'
+__license__ = 'BSD License'
 __version__ = '0.1.5'
 
 import sys  # noqa
