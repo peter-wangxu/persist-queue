@@ -14,7 +14,7 @@ from persistqueue import Queue, Empty, Full
 
 class PersistTest(unittest.TestCase):
     def setUp(self):
-        self.path = tempfile.mkdtemp(suffix='persistqueue')
+        self.path = tempfile.mkdtemp(suffix='queue')
 
     def tearDown(self):
         shutil.rmtree(self.path, ignore_errors=True)

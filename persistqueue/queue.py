@@ -219,7 +219,7 @@ class Queue(object):
                 os.remove(self._infopath())
                 os.rename(tmpfn, self._infopath())
             else:
-                raise e
+                raise
 
     def _qfile(self, number):
         return os.path.join(self.path, 'q%05d' % number)
