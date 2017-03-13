@@ -21,7 +21,7 @@ The goals is to achieve following requirements:
 * Disk-based: each queued item should be stored in disk in case of any crash.
 * Thread-safe: can be used by multi-threaded producers and multi-threaded consumers.
 * Recoverable: Items can be read after process restart.
-* Green-compatible: It can be used in ``greenlet`` or ``eventlet`` environment.
+* Green-compatible: can be used in ``greenlet`` or ``eventlet`` environment.
 
 While *queuelib* and *python-pqueue* cannot fulfil all of above. After some try, I found it's hard to achieve based on their current
 implementation without huge code change. this is the motivation to start this project.
@@ -34,7 +34,7 @@ Requirements
 ------------
 * Python 2.7 or Python 3.x.
 * Full support for Linux.
-* Windows support (with `Caution`_).
+* Windows support (with `Caution`_ if ``persistqueue.Queue`` is used).
 
 Installation
 ------------
@@ -106,6 +106,28 @@ example usage with multi-thread(referred from github project python-pqueue):
     q.join()       # block until all tasks are done
 
 
+example usage for **SQLite3** based queue.
+
+.. code-block:: python
+
+    from persistqueue import FIFOSQLiteQueue
+
+    q = FIFOSQLiteQueue(path="./test", multithreading=True)
+
+    def worker():
+        while True:
+            item = q.get()
+            do_work(item)
+
+    for i in range(num_worker_threads):
+         t = Thread(target=worker)
+         t.daemon = True
+         t.start()
+
+    for item in source():
+        q.put(item)
+
+
 Tests
 -----
 
@@ -142,8 +164,9 @@ Caution
 -------
 
 Currently, the atomic operation is not supported on Windows due to the limitation of Python's `os.rename <https://docs.python.org/2/library/os.html#os.rename>`_,
-That's saying, the data in queue could be in unreadable state when an incidential failure occurs during ``Queue.task_done``.
-**DO NOT PUT ANY CRITICAL DATA ON QUEUE WHEN RUNNING ON WINDOWS**.
+That's saying, the data in ``persistqueue.Queue`` could be in unreadable state when an incidential failure occurs during ``Queue.task_done``.
+
+**DO NOT PUT ANY CRITICAL DATA ON persistqueue.QUEUE WHEN RUNNING ON WINDOWS**.
 
 Contribution
 ------------
@@ -161,4 +184,10 @@ License
 FAQ
 ---
 
+* ``sqlite3.OperationalError: database is locked`` is raised.
 
+persistquest open 2 connections for the db if ``multithreading=True``, the
+SQLite database is locked until that transaction is committed. The ``timeout``
+parameter specifies how long the connection should wait for the lock to go away
+until raising an exception. Default time is **10**, increase ``timeout``
+when creating the queue if above error occurs.
