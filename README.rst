@@ -59,6 +59,9 @@ from source code
 Examples
 --------
 
+Example usage with a file based queue
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. code-block:: python
 
     >>> from persistqueue import Queue
@@ -70,7 +73,6 @@ Examples
     'a'
     >>> q.task_done()
 
-
 Close the python console, and then we restart the queue from the same path,
 
 .. code-block:: python
@@ -81,7 +83,34 @@ Close the python console, and then we restart the queue from the same path,
     'b'
     >>> q.task_done()
 
-example usage with multi-thread(referred from github project python-pqueue):
+Example usage with a SQLite3 based queue
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    >>> import persistqueue
+    >>> q = persistqueue.SQLiteQueue('mypath')
+    >>> q.put('str1')
+    >>> q.put('str2')
+    >>> q.put('str3')
+    >>> q.get()
+    'str1'
+    >>> del q
+
+
+Also close the console, and then recreate the queue:
+
+.. code-block:: python
+
+   >>> import persistqueue
+   >>> q = persistqueue.SQLiteQueue('mypath')
+   >>> q.get()
+   'str2'
+   >>>
+
+
+Example usage with multi-thread
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -106,7 +135,8 @@ example usage with multi-thread(referred from github project python-pqueue):
     q.join()       # block until all tasks are done
 
 
-example usage for **SQLite3** based queue.
+Example usage for **SQLite3** based queue
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
