@@ -3,7 +3,7 @@
 """A single process, persistent multi-producer, multi-consumer
    queue based on SQLite3."""
 
-
+import os
 import pickle
 import sqlite3
 import time as _time
@@ -44,24 +44,11 @@ class SQLiteQueue(object):
         :param multithreading: if set to True, two db connections will be,
                                one for **put** and one for **get**
         """
+        self.path = path
         self.timeout = timeout
-        self._conn = self._new_db_connetion(path, multithreading, timeout)
-        self._getter = self._conn
-        self._putter = self._conn
-        if multithreading:
-            self._putter = self._new_db_connetion(path, multithreading,
-                                                  timeout)
+        self.multithreading = multithreading
 
         self._init()
-
-    def _new_db_connetion(self, path, mulithreading, timeout):
-        if path == self.MERMORY:
-            return sqlite3.connect(path,
-                                   check_same_thread=not mulithreading)
-        else:
-            return sqlite3.connect('{}/data.db'.format(path),
-                                   timeout=timeout,
-                                   check_same_thread=not mulithreading)
 
     def _init(self):
         """Initialize the tables in DB.
@@ -71,10 +58,29 @@ class SQLiteQueue(object):
             data BLOB
             timestamp FLOAT
         """
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
+
+        self._conn = self._new_db_connetion(
+            self.path, self.multithreading, self.timeout)
+        self._getter = self._conn
+        self._putter = self._conn
+        if self.multithreading:
+            self._putter = self._new_db_connetion(
+                self.path, self.multithreading, self.timeout)
         self._conn.execute(self._TABLE_CREATE)
         self._conn.commit()
         self.tran_lock = threading.Lock()
         self.put_event = threading.Event()
+
+    def _new_db_connetion(self, path, mulithreading, timeout):
+        if path == self.MERMORY:
+            return sqlite3.connect(path,
+                                   check_same_thread=not mulithreading)
+        else:
+            return sqlite3.connect('{}/data.db'.format(path),
+                                   timeout=timeout,
+                                   check_same_thread=not mulithreading)
 
     @with_transaction
     def _insert_into(self, pickled):
