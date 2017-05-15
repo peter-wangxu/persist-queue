@@ -3,127 +3,57 @@
 """A single process, persistent multi-producer, multi-consumer
    queue based on SQLite3."""
 
-import os
 import pickle
 import sqlite3
 import time as _time
-import threading
+
+from persistqueue import sqlbase
 
 sqlite3.enable_callback_tracebacks(True)
 
 
-def with_transaction(func):
-
-    def _execute(obj, *args, **kwargs):
-        with obj.tran_lock:
-            with obj._putter as tran:
-                stat, param = func(obj, *args, **kwargs)
-                tran.execute(stat, param)
-    return _execute
-
-
-class SQLiteQueue(object):
+class SQLiteQueue(sqlbase.SQLiteBase):
     """SQLite3 based FIFO queue."""
 
-    TABLE_NAME = 'queue'
-    _TABLE_CREATE = ('CREATE TABLE IF NOT EXISTS {} ('
-                     '_id INTEGER PRIMARY KEY AUTOINCREMENT, '
-                     'data BLOB, timestamp FLOAT)'.format(TABLE_NAME))
-    _TABLE_INSERT = ('INSERT INTO {}(data, timestamp) values (?,'
-                     '?)'.format(TABLE_NAME))
-    _TABLE_SELECT = ('SELECT _id, data from {} order by {} ASC '
-                     'limit 1'.format(TABLE_NAME, '_id'))
-    _TABLE_DELETE = 'DELETE from {} where _id = ?'.format(TABLE_NAME)
-    _TABLE_COUNT = 'SELECT COUNT(_id) from {}'.format(TABLE_NAME)
-    MERMORY = ':memory:'
-
-    def __init__(self, path=None, multithreading=False, timeout=10.0):
-        """Initiate a queue in sqlite3 or memory.
-
-        :param path: path for storing DB file
-        :param multithreading: if set to True, two db connections will be,
-                               one for **put** and one for **get**
-        """
-        self.path = path
-        self.timeout = timeout
-        self.multithreading = multithreading
-
-        self._init()
-
-    def _init(self):
-        """Initialize the tables in DB.
-        Here is the table:
-
-            _id INTEGER
-            data BLOB
-            timestamp FLOAT
-        """
-        if not os.path.exists(self.path):
-            os.makedirs(self.path)
-
-        self._conn = self._new_db_connetion(
-            self.path, self.multithreading, self.timeout)
-        self._getter = self._conn
-        self._putter = self._conn
-        if self.multithreading:
-            self._putter = self._new_db_connetion(
-                self.path, self.multithreading, self.timeout)
-        self._conn.execute(self._TABLE_CREATE)
-        self._conn.commit()
-        self.tran_lock = threading.Lock()
-        self.put_event = threading.Event()
-
-    def _new_db_connetion(self, path, mulithreading, timeout):
-        if path == self.MERMORY:
-            return sqlite3.connect(path,
-                                   check_same_thread=not mulithreading)
-        else:
-            return sqlite3.connect('{}/data.db'.format(path),
-                                   timeout=timeout,
-                                   check_same_thread=not mulithreading)
-
-    @with_transaction
-    def _insert_into(self, pickled):
-        return self._TABLE_INSERT, (pickled, _time.time())
-
-    @with_transaction
-    def _delete(self, _id):
-        return self._TABLE_DELETE, (_id,)
-
-    def _select(self):
-        row = self._getter.execute(self._TABLE_SELECT).fetchone()
-        _id = None
-        if row:
-            _id = row[0]
-        if _id:
-            self._delete(_id)
-            return row[1]
-        return row
+    _TABLE_NAME = 'queue'
+    _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
+    # SQL to create a table
+    _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
+                   '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'data BLOB, timestamp FLOAT)')
+    # SQL to insert a record
+    _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp) VALUES (?, ?)'
+    # SQL to select a record
+    _SQL_SELECT = ('SELECT {key_column}, data FROM {table_name} '
+                   'ORDER BY {key_column} ASC LIMIT 1')
 
     def put(self, item):
         obj = pickle.dumps(item)
-        self._insert_into(obj)
+        self._insert_into(obj, _time.time())
         self.put_event.set()
 
+    def _pop(self):
+        row = self._select()
+        if row:
+            self._delete(row[0])
+            return row[1]  # pickled data
+        return None
+
     def get(self, block=False):
-        unpickled = self._select()
+        unpickled = self._pop()
         if unpickled:
             return pickle.loads(unpickled)
         else:
             if block:
                 while not unpickled:
                     self.put_event.wait()
-                    unpickled = self._select()
+                    unpickled = self._pop()
                 return pickle.loads(unpickled)
             return None
 
     @property
     def size(self):
-        row = self._putter.execute(self._TABLE_COUNT).fetchone()
-        if row:
-            return row[0]
-
-        return 0
+        return self._count()
 
     def qsize(self):
         return self.size
@@ -138,13 +68,7 @@ FIFOSQLiteQueue = SQLiteQueue
 class FILOSQLiteQueue(SQLiteQueue):
     """SQLite3 based FILO queue."""
 
-    TABLE_NAME = 'filo_queue'
-    _TABLE_CREATE = ('CREATE TABLE IF NOT EXISTS {} ('
-                     '_id INTEGER PRIMARY KEY AUTOINCREMENT, '
-                     'data BLOB, timestamp FLOAT)'.format(TABLE_NAME))
-    _TABLE_INSERT = ('INSERT INTO {}(data, timestamp) values (?,'
-                     '?)'.format(TABLE_NAME))
-    _TABLE_SELECT = ('SELECT _id, data from {} order by {} DESC '
-                     'limit 1'.format(TABLE_NAME, '_id'))
-    _TABLE_DELETE = 'DELETE from {} where _id = ?'.format(TABLE_NAME)
-    _TABLE_COUNT = 'SELECT COUNT(_id) from {}'.format(TABLE_NAME)
+    _TABLE_NAME = 'filo_queue'
+    # SQL to select a record
+    _SQL_SELECT = ('SELECT {key_column}, data FROM {table_name} '
+                   'ORDER BY {key_column} DESC LIMIT 1')
