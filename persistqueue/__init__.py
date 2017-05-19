@@ -1,7 +1,7 @@
 # coding=utf-8
 __author__ = 'Peter Wang'
 __license__ = 'BSD License'
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 from .exceptions import Empty, Full  # noqa
 from .pdict import PDict  # noqa
