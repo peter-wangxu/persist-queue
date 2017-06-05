@@ -14,8 +14,9 @@ class PDict(sqlbase.SQLiteBase, dict):
                    'WHERE {key_column} = ?')
     _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
 
-    def __init__(self, path, name):
-        super(PDict, self).__init__(path, name=name)
+    def __init__(self, path, name, multithreading=False):
+        super(PDict, self).__init__(path, name=name,
+                                    multithreading=multithreading)
 
     def __iter__(self):
         raise NotImplementedError('Not supported.')
