@@ -1,8 +1,12 @@
+import logging
 import os
 import sqlite3
 import threading
 
 sqlite3.enable_callback_tracebacks(True)
+
+
+log = logging.getLogger(__name__)
 
 
 def with_transaction(func):
@@ -45,6 +49,7 @@ class SQLiteBase(object):
         """Initialize the tables in DB."""
         if not os.path.exists(self.path):
             os.makedirs(self.path)
+        log.debug('Initializing Sqlite3 Queue with path {}'.format(self.path))
 
         self._conn = self._new_db_connection(
             self.path, self.multithreading, self.timeout)

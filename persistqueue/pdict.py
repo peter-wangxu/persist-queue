@@ -1,7 +1,10 @@
+import logging
 import pickle
 import sqlite3
 
 from persistqueue import sqlbase
+
+log = logging.getLogger(__name__)
 
 
 class PDict(sqlbase.SQLiteBase, dict):

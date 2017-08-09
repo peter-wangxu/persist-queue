@@ -1,6 +1,6 @@
 machine:
   post:
-    - pyenv global 2.7.12 3.4.4 3.5.2 3.6.0
+    - pyenv global 2.7.12 3.4.4 3.5.3 3.6.2
 
 test:
   override:
