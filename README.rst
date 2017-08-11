@@ -16,7 +16,7 @@ persist-queue - A thread-safe, disk-based queue for Python
 This project is based on the achievements of `python-pqueue <https://github.com/balena/python-pqueue>`_
 and `queuelib <https://github.com/scrapy/queuelib>`_
 
-The goals is to achieve following requirements:
+``persist-queue`` implements a file-based queue and a serial of sqlite3-based queues. The goals is to achieve following requirements:
 
 * Disk-based: each queued item should be stored in disk in case of any crash.
 * Thread-safe: can be used by multi-threaded producers and multi-threaded consumers.
@@ -59,6 +59,33 @@ from source code
 Examples
 --------
 
+
+Example usage with a SQLite3 based queue
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    >>> import persistqueue
+    >>> q = persistqueue.SQLiteQueue('mypath')
+    >>> q.put('str1')
+    >>> q.put('str2')
+    >>> q.put('str3')
+    >>> q.get()
+    'str1'
+    >>> del q
+
+
+Close the console, and then recreate the queue:
+
+.. code-block:: python
+
+   >>> import persistqueue
+   >>> q = persistqueue.SQLiteQueue('mypath')
+   >>> q.get()
+   'str2'
+   >>>
+
+
 Example usage with a file based queue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -83,34 +110,72 @@ Close the python console, and then we restart the queue from the same path,
     'b'
     >>> q.task_done()
 
-Example usage with a SQLite3 based queue
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. tip:
+
+    ``task_done`` is required for filed based queue to persist the cursor of
+    next ``get``.
+
+
+Example usage with a SQLite3 based dict
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-    >>> import persistqueue
-    >>> q = persistqueue.SQLiteQueue('mypath')
-    >>> q.put('str1')
-    >>> q.put('str2')
-    >>> q.put('str3')
-    >>> q.get()
-    'str1'
-    >>> del q
+    >>> from persisitqueue import PDict
+    >>> q = PDict("testpath", "testname")
+    >>> q['key1'] = 123
+    >>> q['key2'] = 321
+    >>> q['key1'] = 123
+    >>> q['key2'] = 321
+    >>> q['key1']
+    123
+    >>> len(q)
+    3
+    >>> del q['key1']
+    >>> q['key1']
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "persistqueue\pdict.py", line 58, in __getitem__
+        raise KeyError('Key: {} not exists.'.format(item))
+    KeyError: 'Key: key1 not exists.'
 
+Close the console and restart the PDict
 
-Also close the console, and then recreate the queue:
 
 .. code-block:: python
 
-   >>> import persistqueue
-   >>> q = persistqueue.SQLiteQueue('mypath')
-   >>> q.get()
-   'str2'
-   >>>
+    >>> from persisitqueue import PDict
+    >>> q = PDict("testpath", "testname")
+    >>> q['key2']
+    321
 
 
-Example usage with multi-thread
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Multi-thread usage for **SQLite3** based queue
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    from persistqueue import FIFOSQLiteQueue
+
+    q = FIFOSQLiteQueue(path="./test", multithreading=True)
+
+    def worker():
+        while True:
+            item = q.get()
+            do_work(item)
+
+    for i in range(num_worker_threads):
+         t = Thread(target=worker)
+         t.daemon = True
+         t.start()
+
+    for item in source():
+        q.put(item)
+
+
+multi-thread usage for **Queue**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -134,28 +199,6 @@ Example usage with multi-thread
 
     q.join()       # block until all tasks are done
 
-
-Example usage for **SQLite3** based queue
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: python
-
-    from persistqueue import FIFOSQLiteQueue
-
-    q = FIFOSQLiteQueue(path="./test", multithreading=True)
-
-    def worker():
-        while True:
-            item = q.get()
-            do_work(item)
-
-    for i in range(num_worker_threads):
-         t = Thread(target=worker)
-         t.daemon = True
-         t.start()
-
-    for item in source():
-        q.put(item)
 
 
 Tests
@@ -194,7 +237,7 @@ Caution
 -------
 
 Currently, the atomic operation is not supported on Windows due to the limitation of Python's `os.rename <https://docs.python.org/2/library/os.html#os.rename>`_,
-That's saying, the data in ``persistqueue.Queue`` could be in unreadable state when an incidential failure occurs during ``Queue.task_done``.
+That's saying, the data in ``persistqueue.Queue`` could be in unreadable state when an incidental failure occurs during ``Queue.task_done``.
 
 **DO NOT PUT ANY CRITICAL DATA ON persistqueue.QUEUE WHEN RUNNING ON WINDOWS**.
 

@@ -2,6 +2,7 @@
 
 """A single process, persistent multi-producer, multi-consumer queue."""
 
+import logging
 import os
 import pickle
 import tempfile
@@ -9,6 +10,8 @@ import tempfile
 import threading
 from time import time as _time
 from persistqueue.exceptions import Empty, Full
+
+log = logging.getLogger(__name__)
 
 
 def _truncate(fn, length):
@@ -30,6 +33,7 @@ class Queue(object):
         The tempdir has to be located on the same disk as the enqueued data in
         order to obtain atomic operations.
         """
+        log.debug('Initializing File based Queue with path {}'.format(path))
         self.path = path
         self.chunksize = chunksize
         self.tempdir = tempdir

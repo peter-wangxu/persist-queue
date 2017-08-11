@@ -3,6 +3,7 @@
 """A single process, persistent multi-producer, multi-consumer
    queue based on SQLite3."""
 
+import logging
 import pickle
 import sqlite3
 import time as _time
@@ -10,6 +11,9 @@ import time as _time
 from persistqueue import sqlbase
 
 sqlite3.enable_callback_tracebacks(True)
+
+
+log = logging.getLogger(__name__)
 
 
 class SQLiteQueue(sqlbase.SQLiteBase):
