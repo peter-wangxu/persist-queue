@@ -92,7 +92,7 @@ class SQLite3QueueTest(unittest.TestCase):
 
         def producer(seq):
             for i in range(10):
-                queue.put('var%d' % (i+(seq*10)))
+                queue.put('var%d' % (i + (seq * 10)))
 
         def consumer():
             for i in range(100):
@@ -111,6 +111,33 @@ class SQLite3QueueTest(unittest.TestCase):
             t.join()
 
         c.join()
+
+    def test_multiple_consumers(self):
+        """Test sqlqueue can be used by multiple consumers."""
+
+        queue = SQLiteQueue(path=self.path, multithreading=True)
+
+        def producer():
+            for x in range(1000):
+                queue.put('var%d' % x)
+
+        def consumer():
+            for _ in range(100):
+                data = queue.get(block=True)
+                self.assertTrue('var' in data)
+
+        p = Thread(target=producer)
+        p.start()
+        consumers = []
+        for _ in range(10):
+            t = Thread(target=consumer)
+            t.start()
+            consumers.append(t)
+
+        for t in consumers:
+            t.join()
+
+        self.assertEqual(0, queue.qsize())
 
 
 class FILOSQLite3QueueTest(unittest.TestCase):

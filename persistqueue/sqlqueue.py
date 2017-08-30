@@ -7,6 +7,7 @@ import logging
 import pickle
 import sqlite3
 import time as _time
+import threading
 
 from persistqueue import sqlbase
 
@@ -36,12 +37,18 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         self._insert_into(obj, _time.time())
         self.put_event.set()
 
+    def _init(self):
+        super(SQLiteQueue, self)._init()
+        # Action lock to assure multiple action to be *atomic*
+        self.action_lock = threading.Lock()
+
     def _pop(self):
-        row = self._select()
-        if row:
-            self._delete(row[0])
-            return row[1]  # pickled data
-        return None
+        with self.action_lock:
+            row = self._select()
+            if row:
+                self._delete(row[0])
+                return row[1]  # pickled data
+            return None
 
     def get(self, block=False):
         unpickled = self._pop()
