@@ -60,6 +60,7 @@ class SQLiteBase(object):
                 self.path, self.multithreading, self.timeout)
         self._conn.execute(self._sql_create)
         self._conn.commit()
+        # SQLite3 transaction lock
         self.tran_lock = threading.Lock()
         self.put_event = threading.Event()
 

@@ -126,8 +126,6 @@ Example usage with a SQLite3 based dict
     >>> q = PDict("testpath", "testname")
     >>> q['key1'] = 123
     >>> q['key2'] = 321
-    >>> q['key1'] = 123
-    >>> q['key2'] = 321
     >>> q['key1']
     123
     >>> len(q)
