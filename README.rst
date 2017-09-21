@@ -27,7 +27,8 @@ While *queuelib* and *python-pqueue* cannot fulfil all of above. After some try,
 implementation without huge code change. this is the motivation to start this project.
 
 *persist-queue* use *pickle* object serialization module to support object instances.
-To support customized objects, please refer to `Pickling and unpickling extension types(Python2) <https://docs.python.org/2/library/pickle.html#pickling-and-unpickling-normal-class-instances>`_
+Most built-in type, like `int`, `dict`, `list` are able to be persisted by `persist-queue` directly, to support customized objects,
+please refer to `Pickling and unpickling extension types(Python2) <https://docs.python.org/2/library/pickle.html#pickling-and-unpickling-normal-class-instances>`_
 and `Pickling Class Instances(Python3) <https://docs.python.org/3/library/pickle.html#pickling-class-instances>`_
 
 Requirements
@@ -56,6 +57,34 @@ from source code
     python setup.py install
 
 
+Benchmark
+---------
+
+Here is the result for writing/reading **10000** items to the disk comparing the sqlite3 and file queue.
+
+Environment:
+    - OS: Windows 10
+    - Disk: SATA3 SSD
+    - RAM: 16 GiB
+
++---------+-----------------------+----------------+----------------------------+---------------------+
+|         | Transaction write (s) | Bulk write (s) | Transaction write/read (s) | Bulk write/read (s) |
++---------+-----------------------+----------------+----------------------------+---------------------+
+| SQLite3 | 64.98                 | 0.19           | 142.82                     | 63.82               |
++---------+-----------------------+----------------+----------------------------+---------------------+
+| File    | 89.68                 | 85.78          | 101.37                     | 85.76               |
++---------+-----------------------+----------------+----------------------------+---------------------+
+
+- **Transaction** refers to commit the change to disk on every write.
+- **Bulk** refers to only commit the change to disk on last write.
+
+To see the real performance on your host, run the script under `benchmark/run_benchmark.py`:
+
+.. code-block:: console
+
+    python benchmark/run_benchmark.py
+
+
 Examples
 --------
 
@@ -66,7 +95,7 @@ Example usage with a SQLite3 based queue
 .. code-block:: python
 
     >>> import persistqueue
-    >>> q = persistqueue.SQLiteQueue('mypath')
+    >>> q = persistqueue.SQLiteQueue('mypath', auto_commit=True)
     >>> q.put('str1')
     >>> q.put('str2')
     >>> q.put('str3')
@@ -80,7 +109,7 @@ Close the console, and then recreate the queue:
 .. code-block:: python
 
    >>> import persistqueue
-   >>> q = persistqueue.SQLiteQueue('mypath')
+   >>> q = persistqueue.SQLiteQueue('mypath', auto_commit=True)
    >>> q.get()
    'str2'
    >>>
@@ -129,7 +158,7 @@ Example usage with a SQLite3 based dict
     >>> q['key1']
     123
     >>> len(q)
-    3
+    2
     >>> del q['key1']
     >>> q['key1']
     Traceback (most recent call last):
@@ -198,6 +227,14 @@ multi-thread usage for **Queue**
     q.join()       # block until all tasks are done
 
 
+
+Performance impact
+------------------
+
+Since persistqueue v0.3.0, a new parameter ``auto_commit`` is introduced to tweak
+the performance for sqlite3 based queues as needed. When specify ``auto_commit=False``, user
+needs to perform ``queue.task_done()`` to persist the changes made to the disk since
+last ``task_done`` invocation.
 
 Tests
 -----

@@ -1,7 +1,6 @@
 # coding=utf-8
 
-"""A single process, persistent multi-producer, multi-consumer
-   queue based on SQLite3."""
+"""A thread-safe sqlite3 based persistent queue in Python."""
 
 import logging
 import pickle
@@ -10,9 +9,9 @@ import time as _time
 import threading
 
 from persistqueue import sqlbase
+from persistqueue.exceptions import Empty
 
 sqlite3.enable_callback_tracebacks(True)
-
 
 log = logging.getLogger(__name__)
 
@@ -45,22 +44,37 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     def _pop(self):
         with self.action_lock:
             row = self._select()
-            if row:
+            # Perhaps a sqilite bug, sometimes (None, None) is returned
+            # by select, below can avoid these invalid records.
+            if row and row[0] is not None:
                 self._delete(row[0])
+                if not self.auto_commit:
+                    # Need to commit if not automatic done by _delete
+                    sqlbase.commit_ignore_error(self._putter)
                 return row[1]  # pickled data
             return None
 
     def get(self, block=False):
         unpickled = self._pop()
+        item = None
         if unpickled:
-            return pickle.loads(unpickled)
+            item = pickle.loads(unpickled)
         else:
             if block:
+                end = _time.time() + 10.0
                 while not unpickled:
-                    self.put_event.wait()
+                    remaining = end - _time.time()
+                    if remaining <= 0.0:
+                        raise Empty
+                    # wait for no more than 10 seconds
+                    self.put_event.wait(remaining)
                     unpickled = self._pop()
-                return pickle.loads(unpickled)
-            return None
+                item = pickle.loads(unpickled)
+
+        return item
+
+    def task_done(self):
+        self._task_done()
 
     @property
     def size(self):

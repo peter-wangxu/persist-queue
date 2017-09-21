@@ -5,18 +5,37 @@ import threading
 
 sqlite3.enable_callback_tracebacks(True)
 
-
 log = logging.getLogger(__name__)
 
 
-def with_transaction(func):
+def with_conditional_transaction(func):
     def _execute(obj, *args, **kwargs):
         with obj.tran_lock:
-            with obj._putter as tran:
+            if obj.auto_commit:
+                with obj._putter as tran:
+                    stat, param = func(obj, *args, **kwargs)
+                    tran.execute(stat, param)
+            else:
                 stat, param = func(obj, *args, **kwargs)
-                tran.execute(stat, param)
+                obj._putter.execute(stat, param)
+                # commit_ignore_error(obj._putter)
 
     return _execute
+
+
+def commit_ignore_error(conn):
+    """Ignore the error of no transaction is active.
+
+    The transaction may be already committed by user's task_done call.
+    It's safe to to ignore all errors of this kind.
+    """
+    try:
+        conn.commit()
+    except sqlite3.OperationalError as ex:
+        if 'no transaction is active' in str(ex):
+            log.warning(
+                'Not able to commit the transaction, '
+                'may already be committed.')
 
 
 class SQLiteBase(object):
@@ -31,17 +50,22 @@ class SQLiteBase(object):
     _MEMORY = ':memory:'  # flag indicating store DB in memory
 
     def __init__(self, path, name='default', multithreading=False,
-                 timeout=10.0):
+                 timeout=10.0, auto_commit=False):
         """Initiate a queue in sqlite3 or memory.
 
-        :param path: path for storing DB file
+        :param path: path for storing DB file.
         :param multithreading: if set to True, two db connections will be,
-                               one for **put** and one for **get**
+                               one for **put** and one for **get**.
+        :param timeout: timeout in second waiting for the database lock.
+        :param auto_commit: Set to True, if commit is required on every
+                            INSERT/UPDATE action.
+
         """
         self.path = path
         self.name = name
         self.timeout = timeout
         self.multithreading = multithreading
+        self.auto_commit = auto_commit
 
         self._init()
 
@@ -73,16 +97,16 @@ class SQLiteBase(object):
                                    timeout=timeout,
                                    check_same_thread=not multithreading)
 
-    @with_transaction
+    @with_conditional_transaction
     def _insert_into(self, *record):
         return self._sql_insert, record
 
-    @with_transaction
+    @with_conditional_transaction
     def _update(self, key, *args):
         args = list(args) + [key]
         return self._sql_update, args
 
-    @with_transaction
+    @with_conditional_transaction
     def _delete(self, key):
         sql = 'DELETE FROM {} WHERE {} = ?'.format(self._table_name,
                                                    self._key_column)
@@ -96,6 +120,10 @@ class SQLiteBase(object):
                                                 self._table_name)
         row = self._putter.execute(sql).fetchone()
         return row[0] if row else 0
+
+    def _task_done(self):
+        """Only required if auto-commit is set as False."""
+        commit_ignore_error(self._putter)
 
     @property
     def _table_name(self):
