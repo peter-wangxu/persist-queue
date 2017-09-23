@@ -1,6 +1,6 @@
 # coding=utf-8
 
-"""A single process, persistent multi-producer, multi-consumer queue."""
+"""A thread-safe disk based persistent queue in Python."""
 
 import logging
 import os
