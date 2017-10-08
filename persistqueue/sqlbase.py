@@ -27,15 +27,17 @@ def commit_ignore_error(conn):
     """Ignore the error of no transaction is active.
 
     The transaction may be already committed by user's task_done call.
-    It's safe to to ignore all errors of this kind.
+    It's safe to ignore all errors of this kind.
     """
     try:
         conn.commit()
     except sqlite3.OperationalError as ex:
         if 'no transaction is active' in str(ex):
-            log.warning(
+            log.debug(
                 'Not able to commit the transaction, '
                 'may already be committed.')
+        else:
+            raise
 
 
 class SQLiteBase(object):
@@ -54,6 +56,8 @@ class SQLiteBase(object):
         """Initiate a queue in sqlite3 or memory.
 
         :param path: path for storing DB file.
+        :param name: the suffix for the table name,
+                     table name would be ${_TABLE_NAME}_${name}
         :param multithreading: if set to True, two db connections will be,
                                one for **put** and one for **get**.
         :param timeout: timeout in second waiting for the database lock.
@@ -61,6 +65,7 @@ class SQLiteBase(object):
                             INSERT/UPDATE action.
 
         """
+        self.memory_sql = False
         self.path = path
         self.name = name
         self.timeout = timeout
@@ -71,19 +76,27 @@ class SQLiteBase(object):
 
     def _init(self):
         """Initialize the tables in DB."""
-        if not os.path.exists(self.path):
+        if self.path == self._MEMORY:
+            self.memory_sql = True
+            log.debug("Initializing Sqlite3 Queue in memory.")
+        elif not os.path.exists(self.path):
             os.makedirs(self.path)
-        log.debug('Initializing Sqlite3 Queue with path {}'.format(self.path))
+            log.debug(
+                'Initializing Sqlite3 Queue with path {}'.format(self.path))
 
         self._conn = self._new_db_connection(
             self.path, self.multithreading, self.timeout)
         self._getter = self._conn
         self._putter = self._conn
-        if self.multithreading:
-            self._putter = self._new_db_connection(
-                self.path, self.multithreading, self.timeout)
+
         self._conn.execute(self._sql_create)
         self._conn.commit()
+        # Setup another session only for disk-based queue.
+        if self.multithreading:
+            if not self.memory_sql:
+                self._putter = self._new_db_connection(
+                    self.path, self.multithreading, self.timeout)
+
         # SQLite3 transaction lock
         self.tran_lock = threading.Lock()
         self.put_event = threading.Event()

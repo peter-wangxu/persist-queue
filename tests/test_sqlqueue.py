@@ -150,29 +150,56 @@ class SQLite3QueueTest(unittest.TestCase):
                 queue.put('var%d' % x)
                 task_done_if_required(queue)
 
-        def consumer():
-            for _ in range(100):
+        counter = []
+        # Set all to 0
+        for _ in range(1000):
+            counter.append(0)
+
+        def consumer(index):
+            for i in range(200):
                 data = queue.get(block=True)
                 self.assertTrue('var' in data)
+                counter[index * 200 + i] = data
 
         p = Thread(target=producer)
         p.start()
         consumers = []
-        for _ in range(10):
-            t = Thread(target=consumer)
+        for index in range(5):
+            t = Thread(target=consumer, args=(index,))
             t.start()
             consumers.append(t)
 
+        p.join()
         for t in consumers:
             t.join()
 
         self.assertEqual(0, queue.qsize())
+        for x in range(1000):
+            self.assertNotEqual(0, counter[x], "0 for counter's index %s" % x)
 
 
 class SQLite3QueueAutoCommitTest(SQLite3QueueTest):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='sqlqueue_auto_commit')
         self.auto_commit = True
+
+
+class SQLite3QueueInMemory(SQLite3QueueTest):
+    def setUp(self):
+        self.path = ":memory:"
+        self.auto_commit = False
+
+    def test_open_close_1000(self):
+        self.skipTest('Memory based sqlite is not persistent.')
+
+    def test_open_close_single(self):
+        self.skipTest('Memory based sqlite is not persistent.')
+
+    def test_multiple_consumers(self):
+        # TODO(peter) when the shared-cache feature is available in default
+        # Python of most Linux distros, this should be easy:).
+        self.skipTest('In-memory based sqlite needs the support '
+                      'of shared-cache')
 
 
 class FILOSQLite3QueueTest(unittest.TestCase):
