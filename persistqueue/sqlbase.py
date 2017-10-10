@@ -2,6 +2,7 @@ import logging
 import os
 import sqlite3
 import threading
+import time as _time
 
 sqlite3.enable_callback_tracebacks(True)
 
@@ -17,9 +18,13 @@ def with_conditional_transaction(func):
                     tran.execute(stat, param)
             else:
                 stat, param = func(obj, *args, **kwargs)
-                obj._putter.execute(stat, param)
-                # commit_ignore_error(obj._putter)
-
+                try:
+                    obj._putter.execute(stat, param)
+                    # commit_ignore_error(obj._putter)
+                except sqlite3.InterfaceError as ex:
+                    if 'Error binding' in str(ex):
+                        print(stat, param, type(param[0]))
+                    raise
     return _execute
 
 
@@ -74,7 +79,9 @@ class SQLiteBase(object):
         self.timeout = timeout
         self.multithreading = multithreading
         self.auto_commit = auto_commit
-
+        # Initialize a tick to avoid read starvation.
+        self.read_tick = _time.time()
+        self.pivot = 0
         self._init()
 
     def _init(self):

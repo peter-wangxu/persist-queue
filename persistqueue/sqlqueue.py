@@ -35,9 +35,15 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                    'ORDER BY {key_column} ASC LIMIT 1')
 
     def put(self, item):
+        if self.pivot >= 10000 and (
+                        _time.time() - self.read_tick >= self.timeout):
+            _time.sleep(0.1)
+            print('Sleeped 0.1 for read tick.')
+            self.read_tick = _time.time()
         obj = pickle.dumps(item)
         self._insert_into(obj, _time.time())
         self.put_event.set()
+        self.pivot += 1
 
     def _init(self):
         super(SQLiteQueue, self)._init()
@@ -82,6 +88,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
                 pickled = self._pop()
         item = pickle.loads(pickled)
+        self.pivot -= 1
         return item
 
     def task_done(self):

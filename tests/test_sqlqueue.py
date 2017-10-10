@@ -232,7 +232,7 @@ class SQLite3QueueInMemory(SQLite3QueueTest):
 class FILOSQLite3QueueTest(unittest.TestCase):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='filo_sqlqueue')
-        self.auto_commit = True
+        self.auto_commit = False
 
     def tearDown(self):
         shutil.rmtree(self.path, ignore_errors=True)
