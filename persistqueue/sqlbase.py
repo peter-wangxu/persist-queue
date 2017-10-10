@@ -50,7 +50,7 @@ class SQLiteBase(object):
     _MEMORY = ':memory:'  # flag indicating store DB in memory
 
     def __init__(self, path, name='default', multithreading=False,
-                 timeout=10.0, auto_commit=False):
+                 timeout=10.0, auto_commit=True):
         """Initiate a queue in sqlite3 or memory.
 
         :param path: path for storing DB file.
@@ -58,7 +58,10 @@ class SQLiteBase(object):
                                one for **put** and one for **get**.
         :param timeout: timeout in second waiting for the database lock.
         :param auto_commit: Set to True, if commit is required on every
-                            INSERT/UPDATE action.
+                            INSERT/UPDATE action, otherwise False, whereas
+                            a **task_done** is required to persist changes
+                            after **put**.
+
 
         """
         self.path = path
