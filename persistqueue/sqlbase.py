@@ -79,6 +79,7 @@ class SQLiteBase(object):
 
     def _init(self):
         """Initialize the tables in DB."""
+
         if self.path == self._MEMORY:
             self.memory_sql = True
             log.debug("Initializing Sqlite3 Queue in memory.")
@@ -99,19 +100,26 @@ class SQLiteBase(object):
             if not self.memory_sql:
                 self._putter = self._new_db_connection(
                     self.path, self.multithreading, self.timeout)
-
+        if self.auto_commit is False:
+            log.warning('auto_commit=False is still experimental,'
+                        'only use it with care.')
+            self._getter.isolation_level = "DEFERRED"
+            self._putter.isolation_level = "DEFERRED"
         # SQLite3 transaction lock
         self.tran_lock = threading.Lock()
         self.put_event = threading.Event()
 
     def _new_db_connection(self, path, multithreading, timeout):
+        conn = None
         if path == self._MEMORY:
-            return sqlite3.connect(path,
+            conn = sqlite3.connect(path,
                                    check_same_thread=not multithreading)
         else:
-            return sqlite3.connect('{}/data.db'.format(path),
+            conn = sqlite3.connect('{}/data.db'.format(path),
                                    timeout=timeout,
                                    check_same_thread=not multithreading)
+        conn.execute('PRAGMA journal_mode=WAL;')
+        return conn
 
     @with_conditional_transaction
     def _insert_into(self, *record):
@@ -134,7 +142,7 @@ class SQLiteBase(object):
     def _count(self):
         sql = 'SELECT COUNT({}) FROM {}'.format(self._key_column,
                                                 self._table_name)
-        row = self._putter.execute(sql).fetchone()
+        row = self._getter.execute(sql).fetchone()
         return row[0] if row else 0
 
     def _task_done(self):

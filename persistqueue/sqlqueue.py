@@ -15,6 +15,9 @@ sqlite3.enable_callback_tracebacks(True)
 
 log = logging.getLogger(__name__)
 
+# 10 seconds internal for `wait` of event
+TICK_FOR_WAIT = 10
+
 
 class SQLiteQueue(sqlbase.SQLiteBase):
     """SQLite3 based FIFO queue."""
@@ -44,7 +47,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     def _pop(self):
         with self.action_lock:
             row = self._select()
-            # Perhaps a sqilite bug, sometimes (None, None) is returned
+            # Perhaps a sqlite3 bug, sometimes (None, None) is returned
             # by select, below can avoid these invalid records.
             if row and row[0] is not None:
                 self._delete(row[0])
@@ -54,23 +57,31 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                 return row[1]  # pickled data
             return None
 
-    def get(self, block=False):
-        unpickled = self._pop()
-        item = None
-        if unpickled:
-            item = pickle.loads(unpickled)
+    def get(self, block=True, timeout=None):
+        if not block:
+            pickled = self._pop()
+            if not pickled:
+                raise Empty
+        elif timeout is None:
+            # block until a put event.
+            pickled = self._pop()
+            while not pickled:
+                self.put_event.wait(TICK_FOR_WAIT)
+                pickled = self._pop()
+        elif timeout < 0:
+            raise ValueError("'timeout' must be a non-negative number")
         else:
-            if block:
-                end = _time.time() + 10.0
-                while not unpickled:
-                    remaining = end - _time.time()
-                    if remaining <= 0.0:
-                        raise Empty
-                    # wait for no more than 10 seconds
-                    self.put_event.wait(remaining)
-                    unpickled = self._pop()
-                item = pickle.loads(unpickled)
-
+            # block until the timeout reached
+            endtime = _time.time() + timeout
+            pickled = self._pop()
+            while not pickled:
+                remaining = endtime - _time.time()
+                if remaining <= 0.0:
+                    raise Empty
+                self.put_event.wait(
+                    TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
+                pickled = self._pop()
+        item = pickle.loads(pickled)
         return item
 
     def task_done(self):
