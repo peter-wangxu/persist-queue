@@ -13,9 +13,6 @@ persist-queue - A thread-safe, disk-based queue for Python
 .. image:: https://img.shields.io/pypi/v/persist-queue.svg
     :target: https://pypi.python.org/pypi/persist-queue
 
-This project is based on the achievements of `python-pqueue <https://github.com/balena/python-pqueue>`_
-and `queuelib <https://github.com/scrapy/queuelib>`_
-
 ``persist-queue`` implements a file-based queue and a serial of sqlite3-based queues. The goals is to achieve following requirements:
 
 * Disk-based: each queued item should be stored in disk in case of any crash.
@@ -30,6 +27,9 @@ implementation without huge code change. this is the motivation to start this pr
 Most built-in type, like `int`, `dict`, `list` are able to be persisted by `persist-queue` directly, to support customized objects,
 please refer to `Pickling and unpickling extension types(Python2) <https://docs.python.org/2/library/pickle.html#pickling-and-unpickling-normal-class-instances>`_
 and `Pickling Class Instances(Python3) <https://docs.python.org/3/library/pickle.html#pickling-class-instances>`_
+
+This project is based on the achievements of `python-pqueue <https://github.com/balena/python-pqueue>`_
+and `queuelib <https://github.com/scrapy/queuelib>`_
 
 Requirements
 ------------
@@ -82,7 +82,7 @@ To see the real performance on your host, run the script under `benchmark/run_be
 
 .. code-block:: console
 
-    python benchmark/run_benchmark.py
+    python benchmark/run_benchmark.py <COUNT, default to 100>
 
 
 Examples
@@ -231,10 +231,19 @@ multi-thread usage for **Queue**
 Performance impact
 ------------------
 
-Since persistqueue v0.3.0, a new parameter ``auto_commit`` is introduced to tweak
-the performance for sqlite3 based queues as needed. When specify ``auto_commit=False``, user
-needs to perform ``queue.task_done()`` to persist the changes made to the disk since
-last ``task_done`` invocation.
+WAL::
+
+  Starting on v0.3.2, the `persistqueue` is leveraging the sqlite3 buildin feature
+  `WAL <https://www.sqlite.org/wal.html>` which can improve the performance
+  significantly, a general testing indicates that `persistqueue` is 2-4 times
+  faster than previous version.
+
+auto_commit=False::
+
+  Since persistqueue v0.3.0, a new parameter ``auto_commit`` is introduced to tweak
+  the performance for sqlite3 based queues as needed. When specify ``auto_commit=False``, user
+  needs to perform ``queue.task_done()`` to persist the changes made to the disk since
+  last ``task_done`` invocation.
 
 Tests
 -----
@@ -274,7 +283,7 @@ Caution
 Currently, the atomic operation is not supported on Windows due to the limitation of Python's `os.rename <https://docs.python.org/2/library/os.html#os.rename>`_,
 That's saying, the data in ``persistqueue.Queue`` could be in unreadable state when an incidental failure occurs during ``Queue.task_done``.
 
-**DO NOT PUT ANY CRITICAL DATA ON persistqueue.QUEUE WHEN RUNNING ON WINDOWS**.
+**DO NOT put any critical data on persistqueue.queue on Windows**.
 
 Contribution
 ------------
@@ -288,13 +297,12 @@ License
 
 `BSD <LICENSE>`_
 
-
 FAQ
 ---
 
 * ``sqlite3.OperationalError: database is locked`` is raised.
 
-persistquest open 2 connections for the db if ``multithreading=True``, the
+persistqueue open 2 connections for the db if ``multithreading=True``, the
 SQLite database is locked until that transaction is committed. The ``timeout``
 parameter specifies how long the connection should wait for the lock to go away
 until raising an exception. Default time is **10**, increase ``timeout``
