@@ -216,17 +216,17 @@ class SQLite3QueueInMemory(SQLite3QueueTest):
     def test_open_close_single(self):
         self.skipTest('Memory based sqlite is not persistent.')
 
-    def test_multiple_consumers(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
-
-    def test_multi_threaded_multi_producer(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
-
-    def test_multi_threaded_parallel(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
+#    def test_multiple_consumers(self):
+#        self.skipTest('Skipped due to occasional crash during '
+#                      'multithreading mode.')
+#
+#    def test_multi_threaded_multi_producer(self):
+#        self.skipTest('Skipped due to occasional crash during '
+#                      'multithreading mode.')
+#
+#    def test_multi_threaded_parallel(self):
+#        self.skipTest('Skipped due to occasional crash during '
+#                      'multithreading mode.')
 
 
 class FILOSQLite3QueueTest(unittest.TestCase):
