@@ -4,7 +4,8 @@ machine:
 
 test:
   override:
-    - tox
+   - ulimit -c unlimited
+   - tox
   post:
     - bash <(curl -s https://codecov.io/bash) -cF python
 
@@ -13,3 +14,4 @@ general:
     - ".coverage" # relative to the build directory
     - "coverage.xml" # relative to the user's home directory
     - "htmlcov" # a single file, relative to the build directory
+    - "core" # coredump file

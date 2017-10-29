@@ -82,6 +82,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
             endtime = _time.time() + timeout
             pickled = self._pop()
             while not pickled:
+                self.put_event.clear()
                 remaining = endtime - _time.time()
                 if remaining <= 0.0:
                     raise Empty
