@@ -66,6 +66,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
             # block until a put event.
             pickled = self._pop()
             while not pickled:
+                self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
                 pickled = self._pop()
         elif timeout < 0:
@@ -75,6 +76,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
             endtime = _time.time() + timeout
             pickled = self._pop()
             while not pickled:
+                self.put_event.clear()
                 remaining = endtime - _time.time()
                 if remaining <= 0.0:
                     raise Empty
