@@ -2,7 +2,7 @@ import logging
 import os
 import sqlite3
 import threading
-
+import uuid
 sqlite3.enable_callback_tracebacks(True)
 
 log = logging.getLogger(__name__)
@@ -110,15 +110,24 @@ class SQLiteBase(object):
         self.put_event = threading.Event()
 
     def _new_db_connection(self, path, multithreading, timeout):
-        conn = None
         if path == self._MEMORY:
-            conn = sqlite3.connect(path,
-                                   check_same_thread=not multithreading)
+            try:
+                conn = sqlite3.connect(
+                    database='file:{0}?cache=shared&mode=memory'.format(uuid.uuid1()),
+                    timeout=timeout,
+                    check_same_thread=not multithreading,
+                    uri=True)
+            except TypeError:
+                conn = sqlite3.connect(
+                    database=':memory:',
+                    timeout=timeout,
+                    check_same_thread=not multithreading)
         else:
             conn = sqlite3.connect('{}/data.db'.format(path),
                                    timeout=timeout,
                                    check_same_thread=not multithreading)
         conn.execute('PRAGMA journal_mode=WAL;')
+        conn.set_trace_callback(print)
         return conn
 
     @with_conditional_transaction
