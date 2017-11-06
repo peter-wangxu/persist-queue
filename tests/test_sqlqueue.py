@@ -153,6 +153,7 @@ class SQLite3QueueTest(unittest.TestCase):
         def producer():
             for x in range(1000):
                 queue.put('var%d' % x)
+                print('put: var%d' % x)
                 task_done_if_required(queue)
 
         counter = []
@@ -162,7 +163,8 @@ class SQLite3QueueTest(unittest.TestCase):
 
         def consumer(index):
             for i in range(200):
-                data = queue.get(block=True)
+                data = queue.get(block=True, timeout=2)
+                print('get: index=%d, i=%d, data=%s' % (index, i, data))
                 self.assertTrue('var' in data)
                 counter[index * 200 + i] = data
 
@@ -215,18 +217,6 @@ class SQLite3QueueInMemory(SQLite3QueueTest):
 
     def test_open_close_single(self):
         self.skipTest('Memory based sqlite is not persistent.')
-
-    def test_multiple_consumers(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
-
-    def test_multi_threaded_multi_producer(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
-
-    def test_multi_threaded_parallel(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
 
 
 class FILOSQLite3QueueTest(unittest.TestCase):
