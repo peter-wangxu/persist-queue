@@ -49,12 +49,19 @@ class SQLiteQueue(sqlbase.SQLiteBase):
             row = self._select()
             # Perhaps a sqlite3 bug, sometimes (None, None) is returned
             # by select, below can avoid these invalid records.
-            if row and row[0] is not None:
-                self._delete(row[0])
-                if not self.auto_commit:
-                    # Need to commit if not automatic done by _delete
-                    sqlbase.commit_ignore_error(self._putter)
-                return row[1]  # pickled data
+            if row is not None:
+                print("_pop: ", row)
+                if row and row[0] is not None and row[0] != 0:
+                    self._delete(row[0])
+                    if not self.auto_commit:
+                        # Need to commit if not automatic done by _delete
+                        sqlbase.commit_ignore_error(self._putter)
+                    return row[1]  # pickled data
+                else:
+                    # self._delete(row[0])
+                    print ("warning: row is ", row)
+                    return None
+                    # return b'\x80\x03X\x06\x00\x00\x00var999q\x00.'
             return None
 
     def get(self, block=True, timeout=None):

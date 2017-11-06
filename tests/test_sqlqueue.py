@@ -153,6 +153,7 @@ class SQLite3QueueTest(unittest.TestCase):
         def producer():
             for x in range(1000):
                 queue.put('var%d' % x)
+                print('put: var%d' % x)
                 task_done_if_required(queue)
 
         counter = []
@@ -162,7 +163,8 @@ class SQLite3QueueTest(unittest.TestCase):
 
         def consumer(index):
             for i in range(200):
-                data = queue.get(block=True)
+                data = queue.get(block=True, timeout=2)
+                print('get: index=%d, i=%d, data=%s' % (index, i, data))
                 self.assertTrue('var' in data)
                 counter[index * 200 + i] = data
 
