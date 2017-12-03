@@ -166,7 +166,6 @@ class Queue(object):
             tcnt = toffset = 0
             tnum += 1
             self.tailf.close()
-            os.remove(self.tailf.name)
             self.tailf = self._openchunk(tnum)
         self.info['size'] -= 1
         self.info['tail'] = [tnum, tcnt, toffset]
@@ -224,6 +223,18 @@ class Queue(object):
                 os.rename(tmpfn, self._infopath())
             else:
                 raise
+        self._clear_tail_file()
+
+    def _clear_tail_file(self):
+        """Remove the tail files whose items were already get."""
+        tnum, _, _ = self.info['tail']
+        while tnum >= 1:
+            tnum -= 1
+            path = self._qfile(tnum)
+            if os.path.exists(path):
+                os.remove(path)
+            else:
+                break
 
     def _qfile(self, number):
         return os.path.join(self.path, 'q%05d' % number)
