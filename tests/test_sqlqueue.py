@@ -10,11 +10,6 @@ from persistqueue import SQLiteQueue, FILOSQLiteQueue
 from persistqueue import Empty
 
 
-def task_done_if_required(queue):
-    if not queue.auto_commit:
-        queue.task_done()
-
-
 class SQLite3QueueTest(unittest.TestCase):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='sqlqueue')
@@ -27,7 +22,6 @@ class SQLite3QueueTest(unittest.TestCase):
         q = SQLiteQueue(self.path, auto_commit=self.auto_commit)
 
         q.put('first')
-        task_done_if_required(q)
         d = q.get()
         self.assertEqual('first', d)
         self.assertRaises(Empty, q.get, block=False)
@@ -42,7 +36,6 @@ class SQLite3QueueTest(unittest.TestCase):
 
         q = SQLiteQueue(self.path, auto_commit=self.auto_commit)
         q.put(b'var1')
-        task_done_if_required(q)
         del q
         q = SQLiteQueue(self.path)
         self.assertEqual(1, q.qsize())
@@ -54,8 +47,6 @@ class SQLite3QueueTest(unittest.TestCase):
         q = SQLiteQueue(self.path, auto_commit=self.auto_commit)
         for i in range(1000):
             q.put('var%d' % i)
-
-        task_done_if_required(q)
 
         self.assertEqual(1000, q.qsize())
         del q
@@ -83,7 +74,6 @@ class SQLite3QueueTest(unittest.TestCase):
                     self.assertRaises(Empty, q.get, block=False)
             else:
                 q.put('var%d' % random.getrandbits(16))
-                task_done_if_required(q)
                 n += 1
 
     def test_multi_threaded_parallel(self):
@@ -97,8 +87,6 @@ class SQLite3QueueTest(unittest.TestCase):
         def producer():
             for i in range(1000):
                 m_queue.put('var%d' % i)
-
-            task_done_if_required(m_queue)
 
         def consumer():
             for i in range(1000):
@@ -123,8 +111,6 @@ class SQLite3QueueTest(unittest.TestCase):
         def producer(seq):
             for i in range(10):
                 queue.put('var%d' % (i + (seq * 10)))
-
-            task_done_if_required(queue)
 
         def consumer():
             for i in range(100):
@@ -153,7 +139,6 @@ class SQLite3QueueTest(unittest.TestCase):
         def producer():
             for x in range(1000):
                 queue.put('var%d' % x)
-                task_done_if_required(queue)
 
         counter = []
         # Set all to 0
@@ -182,6 +167,32 @@ class SQLite3QueueTest(unittest.TestCase):
         for x in range(1000):
             self.assertNotEqual(0, counter[x],
                                 "not 0 for counter's index %s" % x)
+
+    def test_task_done_with_restart(self):
+        """Test that items are not deleted before task_done."""
+
+        q = SQLiteQueue(path=self.path, auto_commit=False)
+
+        for i in range(1, 11):
+            q.put(i)
+
+        self.assertEqual(1, q.get())
+        self.assertEqual(2, q.get())
+        # size is correct before task_done
+        self.assertEqual(8, q.qsize())
+        q.task_done()
+        # make sure the size still correct
+        self.assertEqual(8, q.qsize())
+
+        self.assertEqual(3, q.get())
+        # without task done
+        del q
+        q = SQLiteQueue(path=self.path, auto_commit=False)
+        # After restart, the qsize and head item are the same
+        self.assertEqual(8, q.qsize())
+        # After restart, the queue still works
+        self.assertEqual(3, q.get())
+        self.assertEqual(7, q.qsize())
 
 
 class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
@@ -228,6 +239,9 @@ class SQLite3QueueInMemory(SQLite3QueueTest):
         self.skipTest('Skipped due to occasional crash during '
                       'multithreading mode.')
 
+    def test_task_done_with_restart(self):
+        self.skipTest('Skipped due to not persistent.')
+
 
 class FILOSQLite3QueueTest(unittest.TestCase):
     def setUp(self):
@@ -243,7 +257,6 @@ class FILOSQLite3QueueTest(unittest.TestCase):
         q = FILOSQLiteQueue(self.path, auto_commit=self.auto_commit)
         for i in range(1000):
             q.put('var%d' % i)
-        task_done_if_required(q)
         self.assertEqual(1000, q.qsize())
         del q
         q = FILOSQLiteQueue(self.path)

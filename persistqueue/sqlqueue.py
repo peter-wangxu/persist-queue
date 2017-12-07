@@ -33,28 +33,45 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     # SQL to select a record
     _SQL_SELECT = ('SELECT {key_column}, data FROM {table_name} '
                    'ORDER BY {key_column} ASC LIMIT 1')
+    _SQL_SELECT_WHERE = 'SELECT {key_column}, data FROM {table_name} WHERE' \
+                        ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
 
     def put(self, item):
         obj = pickle.dumps(item)
         self._insert_into(obj, _time.time())
+        self.total += 1
         self.put_event.set()
 
     def _init(self):
         super(SQLiteQueue, self)._init()
         # Action lock to assure multiple action to be *atomic*
         self.action_lock = threading.Lock()
+        if not self.auto_commit:
+            # Refresh current cursor after restart
+            head = self._select()
+            if head:
+                self.cursor = head[0] - 1
+            else:
+                self.cursor = 0
+        self.total = self._count()
 
     def _pop(self):
         with self.action_lock:
-            row = self._select()
-            # Perhaps a sqlite3 bug, sometimes (None, None) is returned
-            # by select, below can avoid these invalid records.
-            if row and row[0] is not None:
-                self._delete(row[0])
-                if not self.auto_commit:
-                    # Need to commit if not automatic done by _delete
-                    sqlbase.commit_ignore_error(self._putter)
-                return row[1]  # pickled data
+            if self.auto_commit:
+                row = self._select()
+                # Perhaps a sqlite3 bug, sometimes (None, None) is returned
+                # by select, below can avoid these invalid records.
+                if row and row[0] is not None:
+                    self._delete(row[0])
+                    self.total -= 1
+                    return row[1]  # pickled data
+            else:
+                row = self._select(
+                    self.cursor, op=">", column=self._KEY_COLUMN)
+                if row and row[0] is not None:
+                    self.cursor = row[0]
+                    self.total -= 1
+                    return row[1]
             return None
 
     def get(self, block=True, timeout=None):
@@ -87,11 +104,14 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         return item
 
     def task_done(self):
-        self._task_done()
+        """Persist the current state if auto_commit=False."""
+        if not self.auto_commit:
+            self._delete(self.cursor, op='<=')
+            self._task_done()
 
     @property
     def size(self):
-        return self._count()
+        return self.total
 
     def qsize(self):
         return self.size

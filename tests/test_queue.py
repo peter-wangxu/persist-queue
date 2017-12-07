@@ -204,6 +204,28 @@ class PersistTest(unittest.TestCase):
         p.join()
         self.assertEqual('var5', val)
 
+    def test_clear_tail_file(self):
+        """Teat that only remove tail file when calling task_done."""
+        q = Queue(self.path, chunksize=10)
+        for i in range(35):
+            q.put('var%d' % i)
+
+        for _ in range(15):
+            q.get()
+
+        q = Queue(self.path, chunksize=10)
+        self.assertEqual(q.qsize(), 35)
+
+        for _ in range(15):
+            q.get()
+        # the first tail file gets removed after task_done
+        q.task_done()
+        for _ in range(16):
+            q.get()
+        # the second and third files get removed after task_done
+        q.task_done()
+        self.assertEqual(q.qsize(), 4)
+
     def test_windows_error(self):
         """Test the rename restrictions of Windows"""
         q = Queue(self.path)

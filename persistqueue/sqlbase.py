@@ -11,14 +11,9 @@ log = logging.getLogger(__name__)
 def with_conditional_transaction(func):
     def _execute(obj, *args, **kwargs):
         with obj.tran_lock:
-            if obj.auto_commit:
-                with obj._putter as tran:
-                    stat, param = func(obj, *args, **kwargs)
-                    tran.execute(stat, param)
-            else:
+            with obj._putter as tran:
                 stat, param = func(obj, *args, **kwargs)
-                obj._putter.execute(stat, param)
-                # commit_ignore_error(obj._putter)
+                tran.execute(stat, param)
 
     return _execute
 
@@ -49,6 +44,7 @@ class SQLiteBase(object):
     _SQL_UPDATE = ''  # SQL to update a record
     _SQL_INSERT = ''  # SQL to insert a record
     _SQL_SELECT = ''  # SQL to select a record
+    _SQL_SELECT_WHERE = ''  # SQL to select a record with criteria
     _MEMORY = ':memory:'  # flag indicating store DB in memory
 
     def __init__(self, path, name='default', multithreading=False,
@@ -131,12 +127,18 @@ class SQLiteBase(object):
         return self._sql_update, args
 
     @with_conditional_transaction
-    def _delete(self, key):
-        sql = 'DELETE FROM {} WHERE {} = ?'.format(self._table_name,
-                                                   self._key_column)
+    def _delete(self, key, op='='):
+        sql = 'DELETE FROM {} WHERE {} {} ?'.format(self._table_name,
+                                                    self._key_column,
+                                                    op)
         return sql, (key,)
 
-    def _select(self, *args):
+    def _select(self, *args, **kwargs):
+        op = kwargs.get('op', None)
+        column = kwargs.get('column', None)
+        if op and column:
+            return self._getter.execute(
+                self._sql_select_where(op, column), args).fetchone()
         return self._getter.execute(self._sql_select, args).fetchone()
 
     def _count(self):
@@ -176,3 +178,9 @@ class SQLiteBase(object):
     def _sql_select(self):
         return self._SQL_SELECT.format(table_name=self._table_name,
                                        key_column=self._key_column)
+
+    def _sql_select_where(self, op, column):
+        return self._SQL_SELECT_WHERE.format(table_name=self._table_name,
+                                             key_column=self._key_column,
+                                             op=op,
+                                             column=column)
