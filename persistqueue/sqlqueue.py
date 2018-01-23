@@ -141,7 +141,7 @@ class UniqueQ(SQLiteQueue):
     def put(self, item):
         obj = pickle.dumps(item)
         try:
-            self._insert_into(obj, time())
+            self._insert_into(obj, _time.time())
         except sqlite3.IntegrityError:
             pass
         else:
