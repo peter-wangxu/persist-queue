@@ -65,7 +65,7 @@ class SQLite3QueueTest(unittest.TestCase):
 
         q = SQLiteQueue(self.path, auto_commit=self.auto_commit)
         n = 0
-        for i in range(1000):
+        for _ in range(1000):
             if random.random() < 0.5:
                 if n > 0:
                     q.get()
@@ -113,7 +113,7 @@ class SQLite3QueueTest(unittest.TestCase):
                 queue.put('var%d' % (i + (seq * 10)))
 
         def consumer():
-            for i in range(100):
+            for _ in range(100):
                 data = queue.get(block=True)
                 self.assertTrue('var' in data)
 
