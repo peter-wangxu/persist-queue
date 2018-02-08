@@ -96,11 +96,11 @@ class SQLiteBase(object):
             if not self.memory_sql:
                 self._putter = self._new_db_connection(
                     self.path, self.multithreading, self.timeout)
-        if self.auto_commit is False:
-            log.warning('auto_commit=False is still experimental,'
-                        'only use it with care.')
-            self._getter.isolation_level = "DEFERRED"
-            self._putter.isolation_level = "DEFERRED"
+        # if self.auto_commit is False:
+        #     log.warning('auto_commit=False is still experimental,'
+        #                 'only use it with care.')
+        #     self._getter.isolation_level = "DEFERRED"
+        #     self._putter.isolation_level = "DEFERRED"
         # SQLite3 transaction lock
         self.tran_lock = threading.Lock()
         self.put_event = threading.Event()
