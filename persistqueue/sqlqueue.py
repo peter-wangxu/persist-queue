@@ -131,8 +131,8 @@ class FILOSQLiteQueue(SQLiteQueue):
     _SQL_SELECT = ('SELECT {key_column}, data FROM {table_name} '
                    'ORDER BY {key_column} DESC LIMIT 1')
 
+
 class UniqueQ(SQLiteQueue):
-    total = 0
     _TABLE_NAME = 'unique_queue'
     _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
                    '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '

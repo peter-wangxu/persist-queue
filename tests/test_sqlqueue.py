@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from threading import Thread
 
-from persistqueue import SQLiteQueue, FILOSQLiteQueue
+from persistqueue import SQLiteQueue, FILOSQLiteQueue, UniqueQ
 from persistqueue import Empty
 
 
@@ -274,3 +274,24 @@ class FILOSQLite3QueueNoAutoCommitTest(FILOSQLite3QueueTest):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='filo_sqlqueue_auto_commit')
         self.auto_commit = False
+
+
+class SQLite3UniqueQueueTest(unittest.TestCase):
+    def setUp(self):
+        self.path = tempfile.mkdtemp(suffix='sqlqueue')
+        self.auto_commit = True
+
+    def test_add_duplicate_item(self):
+        q = UniqueQ(self.path)
+        q.put(1111)
+        self.assertEqual(1, q.size)
+        # put duplicate item
+        q.put(1111)
+        self.assertEqual(1, q.size)
+
+        q.put(2222)
+        self.assertEqual(2, q.size)
+
+        del q
+        q = UniqueQ(self.path)
+        self.assertEqual(2, q.size)

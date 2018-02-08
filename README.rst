@@ -115,6 +115,23 @@ Close the console, and then recreate the queue:
    >>>
 
 
+Example usage of SQLite3 based ``UniqueQ``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This queue does not allow duplicate items.
+
+.. code-block:: python
+
+   >>> import persistqueue
+   >>> q = persistqueue.UniqueQ('mypath')
+   >>> q.put('str1')
+   >>> q.put('str1')
+   >>> q.size
+   1
+   >>> q.put('str2')
+   >>> q.size
+   2
+   >>>
+
 Example usage with a file based queue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -139,11 +156,6 @@ Close the python console, and then we restart the queue from the same path,
     'b'
     >>> q.task_done()
 
-
-.. tip:
-
-    ``task_done`` is required for filed based queue to persist the cursor of
-    next ``get``.
 
 
 Example usage with a SQLite3 based dict
@@ -227,18 +239,23 @@ multi-thread usage for **Queue**
     q.join()       # block until all tasks are done
 
 
+Tips
+----
+``task_done`` is required both for filed based queue and SQLite3 based queue (when ``auto_commit=False``)
+to persist the cursor of next ``get`` to the disk.
+
 
 Performance impact
 ------------------
 
-WAL::
+- **WAL**
 
   Starting on v0.3.2, the `persistqueue` is leveraging the sqlite3 buildin feature
   `WAL <https://www.sqlite.org/wal.html>` which can improve the performance
   significantly, a general testing indicates that `persistqueue` is 2-4 times
   faster than previous version.
 
-auto_commit=False::
+- **auto_commit=False**
 
   Since persistqueue v0.3.0, a new parameter ``auto_commit`` is introduced to tweak
   the performance for sqlite3 based queues as needed. When specify ``auto_commit=False``, user

@@ -1,5 +1,4 @@
 [run]
-source = persistqueue
 branch = True
 include = persistqueue/*
 [xml]
