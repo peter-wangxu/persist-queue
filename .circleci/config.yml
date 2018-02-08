@@ -4,11 +4,15 @@ jobs:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:2.7.14
-
+    environment:
+      - TOXENV: py27
     steps: &common_steps
+      - checkout
       - run:
           command: |
-          # tell the operating system to remove the file size limit on core dump files
+            sudo pip install tox
+      - run:
+          command: | # tell the operating system to remove the file size limit on core dump files
             ulimit -c unlimited
             tox
       - run: bash <(curl -s https://codecov.io/bash) -cF python
@@ -28,14 +32,16 @@ jobs:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.4.7
-
+    environment:
+      - TOXENV: py34
     steps: *common_steps
 
   py35:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.5.4
-
+    environment:
+      - TOXENV: py35
 
     steps: *common_steps
 
@@ -43,12 +49,44 @@ jobs:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.6.4
-
+    environment:
+      - TOXENV: py36
     steps: *common_steps
 
   py37:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.7.0a4
-
+    environment:
+      - TOXENV: py37
     steps: *common_steps
+
+
+  pep8:
+    docker:
+      # Primary container image where all steps run.
+      - image: circleci/python:3.5.4
+    environment:
+      - TOXENV: pep8
+    steps: *common_steps
+
+
+  cover:
+    docker:
+      # Primary container image where all steps run.
+      - image: circleci/python:3.5.4
+    environment:
+      - TOXENV: cover
+    steps: *common_steps
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - pep8
+      - py27
+      - py34
+      - py35
+      - py36
+      - py37
+      - cover
