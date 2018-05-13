@@ -5,6 +5,7 @@ import os
 import pickle
 import random
 import shutil
+import sys
 import tempfile
 import unittest
 from threading import Thread
@@ -249,3 +250,13 @@ class PersistTest(unittest.TestCase):
 
         self.assertTrue(b'a', q.get())
         self.assertTrue(b'b', q.get())
+
+    def test_protocol_1(self):
+        shutil.rmtree(self.path)
+
+        q = Queue(path=self.path)
+        self.assertEqual(q.protocol, 2 if sys.version_info[0] == 2 else 4)
+
+    def test_protocol_2(self):
+        q = Queue(path=self.path)
+        self.assertEqual(q.protocol, None)

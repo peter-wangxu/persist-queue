@@ -1,6 +1,6 @@
 # coding=utf-8
 __author__ = 'Peter Wang'
-__license__ = 'BSD License'
+__license__ = 'BSD'
 __version__ = '0.3.5'
 
 from .exceptions import Empty, Full  # noqa

@@ -14,7 +14,7 @@ setup(
     author_email='wangxu198709@gmail.com',
     maintainer='Peter Wang',
     maintainer_email='wangxu198709@gmail.com',
-    license='BSD License',
+    license='BSD',
     packages=find_packages(),
     platforms=["all"],
     url='http://github.com/peter-wangxu/persist-queue',

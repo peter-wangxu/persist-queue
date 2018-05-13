@@ -2,6 +2,7 @@
 
 import random
 import shutil
+import sys
 import tempfile
 import unittest
 from threading import Thread
@@ -194,6 +195,15 @@ class SQLite3QueueTest(unittest.TestCase):
         self.assertEqual(3, q.get())
         self.assertEqual(7, q.qsize())
 
+    def test_protocol_1(self):
+        shutil.rmtree(self.path, ignore_errors=True)
+        q = SQLiteQueue(path=self.path)
+        self.assertEqual(q.protocol, 2 if sys.version_info[0] == 2 else 4)
+
+    def test_protocol_2(self):
+        q = SQLiteQueue(path=self.path)
+        self.assertEqual(q.protocol, None)
+
 
 class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
     def setUp(self):
@@ -241,6 +251,9 @@ class SQLite3QueueInMemory(SQLite3QueueTest):
 
     def test_task_done_with_restart(self):
         self.skipTest('Skipped due to not persistent.')
+
+    def test_protocol_2(self):
+        self.skipTest('In memory queue is always new.')
 
 
 class FILOSQLite3QueueTest(unittest.TestCase):

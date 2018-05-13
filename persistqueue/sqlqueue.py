@@ -37,7 +37,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                         ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
 
     def put(self, item):
-        obj = pickle.dumps(item)
+        obj = pickle.dumps(item, protocol=self.protocol)
         self._insert_into(obj, _time.time())
         self.total += 1
         self.put_event.set()
