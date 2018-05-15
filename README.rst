@@ -89,9 +89,13 @@ Here are the results for writing/reading **1000** items to the disk comparing th
 +---------------+--------+-------------------------+----------------------------+
 
 
-**note** Above result was got from `python benchmark/run_benchmark.py 1000`
+**note** Above result was got from:
+.. code-block:: console
 
-To see the real performance on your host, run the script under `benchmark/run_benchmark.py`:
+    python benchmark/run_benchmark.py 1000
+
+
+To see the real performance on your host, run the script under ``benchmark/run_benchmark.py``:
 
 .. code-block:: console
 
