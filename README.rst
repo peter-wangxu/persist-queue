@@ -90,6 +90,7 @@ Here are the results for writing/reading **1000** items to the disk comparing th
 
 
 **note** Above result was got from:
+
 .. code-block:: console
 
     python benchmark/run_benchmark.py 1000
