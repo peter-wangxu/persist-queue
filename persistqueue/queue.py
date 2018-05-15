@@ -10,6 +10,8 @@ import tempfile
 import threading
 from time import time as _time
 from persistqueue.exceptions import Empty, Full
+from persistqueue import common
+
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ class Queue(object):
         self.chunksize = chunksize
         self.tempdir = tempdir
         self.maxsize = maxsize
+        self.protocol = None
         self._init(maxsize)
         if self.tempdir:
             if os.stat(self.path).st_dev != os.stat(self.tempdir).st_dev:
@@ -69,6 +72,7 @@ class Queue(object):
 
         if not os.path.exists(self.path):
             os.makedirs(self.path)
+            self.protocol = common.select_pickle_protocol()
 
     def join(self):
         with self.all_tasks_done:

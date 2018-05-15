@@ -3,6 +3,8 @@ import os
 import sqlite3
 import threading
 
+from persistqueue import common
+
 sqlite3.enable_callback_tracebacks(True)
 
 log = logging.getLogger(__name__)
@@ -70,7 +72,7 @@ class SQLiteBase(object):
         self.timeout = timeout
         self.multithreading = multithreading
         self.auto_commit = auto_commit
-
+        self.protocol = None
         self._init()
 
     def _init(self):
@@ -79,10 +81,13 @@ class SQLiteBase(object):
         if self.path == self._MEMORY:
             self.memory_sql = True
             log.debug("Initializing Sqlite3 Queue in memory.")
+            self.protocol = common.select_pickle_protocol()
         elif not os.path.exists(self.path):
             os.makedirs(self.path)
             log.debug(
                 'Initializing Sqlite3 Queue with path {}'.format(self.path))
+            # Set to current highest pickle protocol for new queue.
+            self.protocol = common.select_pickle_protocol()
 
         self._conn = self._new_db_connection(
             self.path, self.multithreading, self.timeout)
@@ -96,11 +101,10 @@ class SQLiteBase(object):
             if not self.memory_sql:
                 self._putter = self._new_db_connection(
                     self.path, self.multithreading, self.timeout)
-        # if self.auto_commit is False:
-        #     log.warning('auto_commit=False is still experimental,'
-        #                 'only use it with care.')
-        #     self._getter.isolation_level = "DEFERRED"
-        #     self._putter.isolation_level = "DEFERRED"
+        if self.protocol is not None:
+            self._conn.text_factory = str
+            self._putter.text_factory = str
+
         # SQLite3 transaction lock
         self.tran_lock = threading.Lock()
         self.put_event = threading.Event()

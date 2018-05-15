@@ -262,30 +262,26 @@ Performance impact
   needs to perform ``queue.task_done()`` to persist the changes made to the disk since
   last ``task_done`` invocation.
 
+- **pickle protocol selection**
+
+  From v0.3.6, the `persistqueue` will select `Protocol version 2` for python2 and `Protocol version 4` for python3
+  respectively. This selection only happens when the directory is not present when initializing the queue.
+
 Tests
 -----
 
 *persist-queue* use ``tox`` to trigger tests.
 
-to trigger tests based on python2.7/python3.x, use:
+- Unit test
 
 .. code-block:: console
 
-    tox -e py27
+    tox -e <PYTHON_VERSION>
 
-.. code-block:: console
+Available `<PYTHON_VERSION>`: `py27`, `py34`, `py35`, `py36`, `py37`
 
-    tox -e py34
 
-.. code-block:: console
-
-    tox -e py35
-
-.. code-block:: console
-
-    tox -e py36
-
-to trigger pep8 check, use:
+- PEP8 check
 
 .. code-block:: console
 
