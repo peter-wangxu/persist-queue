@@ -60,23 +60,36 @@ from source code
 Benchmark
 ---------
 
-Here is the result for writing/reading **10000** items to the disk comparing the sqlite3 and file queue.
+Here are the results for writing/reading **1000** items to the disk comparing the sqlite3 and file queue.
 
-Environment:
+- Windows
     - OS: Windows 10
     - Disk: SATA3 SSD
     - RAM: 16 GiB
 
-+---------+-----------------------+----------------+----------------------------+---------------------+
-|         | Transaction write (s) | Bulk write (s) | Transaction write/read (s) | Bulk write/read (s) |
-+---------+-----------------------+----------------+----------------------------+---------------------+
-| SQLite3 | 64.98                 | 0.19           | 142.82                     | 63.82               |
-+---------+-----------------------+----------------+----------------------------+---------------------+
-| File    | 89.68                 | 85.78          | 101.37                     | 85.76               |
-+---------+-----------------------+----------------+----------------------------+---------------------+
++---------------+---------+-------------------------+----------------------------+
+|               | Write   | Write/Read(1 task_done) | Write/Read(many task_done) |
++---------------+---------+-------------------------+----------------------------+
+| SQLite3 Queue | 1.8880  | 2.0290                  | 3.5940                     |
++---------------+---------+-------------------------+----------------------------+
+| File Queue    | 15.0550 | 15.9150                 | 30.7650                    |
++---------------+---------+-------------------------+----------------------------+
 
-- **Transaction** refers to commit the change to disk on every write.
-- **Bulk** refers to only commit the change to disk on last write.
+- Linux
+    - OS: Ubuntu 16.04 (VM)
+    - Disk: SATA3 SSD
+    - RAM:  4 GiB
+
++---------------+--------+-------------------------+----------------------------+
+|               | Write  | Write/Read(1 task_done) | Write/Read(many task_done) |
++---------------+--------+-------------------------+----------------------------+
+| SQLite3 Queue | 1.8282 | 1.8075                  | 2.8639                     |
++---------------+--------+-------------------------+----------------------------+
+| File Queue    | 0.9123 | 1.0411                  | 2.5104                     |
++---------------+--------+-------------------------+----------------------------+
+
+
+**note** Above result was got from `python benchmark/run_benchmark.py 1000`
 
 To see the real performance on your host, run the script under `benchmark/run_benchmark.py`:
 
@@ -241,6 +254,7 @@ multi-thread usage for **Queue**
 
 Tips
 ----
+
 ``task_done`` is required both for filed based queue and SQLite3 based queue (when ``auto_commit=False``)
 to persist the cursor of next ``get`` to the disk.
 
@@ -250,9 +264,9 @@ Performance impact
 
 - **WAL**
 
-  Starting on v0.3.2, the `persistqueue` is leveraging the sqlite3 buildin feature
-  `WAL <https://www.sqlite.org/wal.html>` which can improve the performance
-  significantly, a general testing indicates that `persistqueue` is 2-4 times
+  Starting on v0.3.2, the ``persistqueue`` is leveraging the sqlite3 builtin feature
+  ``WAL <https://www.sqlite.org/wal.html>`` which can improve the performance
+  significantly, a general testing indicates that ``persistqueue`` is 2-4 times
   faster than previous version.
 
 - **auto_commit=False**
@@ -264,7 +278,7 @@ Performance impact
 
 - **pickle protocol selection**
 
-  From v0.3.6, the `persistqueue` will select `Protocol version 2` for python2 and `Protocol version 4` for python3
+  From v0.3.6, the ``persistqueue`` will select ``Protocol version 2`` for python2 and ``Protocol version 4`` for python3
   respectively. This selection only happens when the directory is not present when initializing the queue.
 
 Tests
@@ -278,7 +292,7 @@ Tests
 
     tox -e <PYTHON_VERSION>
 
-Available `<PYTHON_VERSION>`: `py27`, `py34`, `py35`, `py36`, `py37`
+Available ``<PYTHON_VERSION>``: ``py27``, ``py34``, ``py35``, ``py36``, ``py37``
 
 
 - PEP8 check

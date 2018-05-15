@@ -23,54 +23,48 @@ def time_it(func):
     return _exec
 
 
-class TransactionBench(object):
-    """Benchmark transaction write/read."""
+class FileQueueBench(object):
+    """Benchmark File queue performance."""
 
     def __init__(self, prefix=None):
         self.path = prefix
-
     @time_it
-    def benchmark_sqlite_write_10000(self):
-        """Benchmark sqlite queue by writing <BENCHMARK_COUNT> items."""
-
-        self.path = tempfile.mkdtemp('b_sql_10000')
-        q = SQLiteQueue(self.path, auto_commit=True)
-        for i in range(BENCHMARK_COUNT):
-            q.put('bench%d' % i)
-
-    @time_it
-    def benchmark_sqlite_wr_10000(self):
-        """Benchmark sqlite queue by writing and reading <BENCHMARK_COUNT> items."""
-        self.path = tempfile.mkdtemp('b_sql_10000')
-        q = SQLiteQueue(self.path, auto_commit=True)
-        for i in range(BENCHMARK_COUNT):
-            q.put('bench%d' % i)
-
-        for i in range(BENCHMARK_COUNT):
-            q.get()
-
-    @time_it
-    def benchmark_file_write_10000(self):
-        """Benchmark file queue by writing <BENCHMARK_COUNT> items."""
+    def benchmark_file_write(self):
+        """Writing <BENCHMARK_COUNT> items."""
 
         self.path = tempfile.mkdtemp('b_file_10000')
         q = Queue(self.path)
         for i in range(BENCHMARK_COUNT):
             q.put('bench%d' % i)
-            q.task_done()
+        assert q.qsize() == BENCHMARK_COUNT
 
     @time_it
-    def benchmark_file_wr_10000(self):
-        """Benchmark file queue by writing and reading <BENCHMARK_COUNT> items."""
+    def benchmark_file_read_write_false(self):
+        """Writing and reading <BENCHMARK_COUNT> items(1 task_done)."""
 
         self.path = tempfile.mkdtemp('b_file_10000')
         q = Queue(self.path)
         for i in range(BENCHMARK_COUNT):
             q.put('bench%d' % i)
-            q.task_done()
 
         for i in range(BENCHMARK_COUNT):
             q.get()
+        q.task_done()
+        assert q.qsize() == 0
+
+    @time_it
+    def benchmark_file_read_write_true(self):
+        """Writing and reading <BENCHMARK_COUNT> items(many task_done)."""
+
+        self.path = tempfile.mkdtemp('b_file_10000')
+        q = Queue(self.path)
+        for i in range(BENCHMARK_COUNT):
+            q.put('bench%d' % i)
+
+        for i in range(BENCHMARK_COUNT):
+            q.get()
+            q.task_done()
+        assert q.qsize() == 0
 
     @classmethod
     def run(cls):
@@ -82,53 +76,43 @@ class TransactionBench(object):
                 func()
 
 
-class BulkBench(object):
-    """Benchmark bulk write/read."""
+class Sqlite3QueueBench(object):
+    """Benchmark Sqlite3 queue performance."""
 
     @time_it
-    def benchmark_sqlite_write_10000(self):
-        """Benchmark sqlite queue by writing <BENCHMARK_COUNT> items."""
+    def benchmark_sqlite_write(self):
+        """Writing <BENCHMARK_COUNT> items."""
 
         self.path = tempfile.mkdtemp('b_sql_10000')
         q = SQLiteQueue(self.path, auto_commit=False)
         for i in range(BENCHMARK_COUNT):
             q.put('bench%d' % i)
-        q.task_done()
+
+        assert q.qsize() == BENCHMARK_COUNT
 
     @time_it
-    def benchmark_sqlite_wr_10000(self):
-        """Benchmark sqlite queue by writing and reading <BENCHMARK_COUNT> items."""
+    def benchmark_sqlite_read_write_false(self):
+        """Writing and reading <BENCHMARK_COUNT> items(1 task_done)."""
         self.path = tempfile.mkdtemp('b_sql_10000')
         q = SQLiteQueue(self.path, auto_commit=False)
         for i in range(BENCHMARK_COUNT):
             q.put('bench%d' % i)
+        for i in range(BENCHMARK_COUNT):
+            q.get()
         q.task_done()
+        assert q.qsize() == 0
+
+    @time_it
+    def benchmark_sqlite_read_write_true(self):
+        """Writing and reading <BENCHMARK_COUNT> items(many task_done)."""
+        self.path = tempfile.mkdtemp('b_sql_10000')
+        q = SQLiteQueue(self.path, auto_commit=True)
+        for i in range(BENCHMARK_COUNT):
+            q.put('bench%d' % i)
 
         for i in range(BENCHMARK_COUNT):
             q.get()
-
-    @time_it
-    def benchmark_file_write_10000(self):
-        """Benchmark file queue by writing <BENCHMARK_COUNT> items."""
-
-        self.path = tempfile.mkdtemp('b_file_10000')
-        q = Queue(self.path)
-        for i in range(BENCHMARK_COUNT):
-            q.put('bench%d' % i)
-        q.task_done()
-
-    @time_it
-    def benchmark_file_wr_10000(self):
-        """Benchmark file queue by writing and reading <BENCHMARK_COUNT> items."""
-
-        self.path = tempfile.mkdtemp('b_file_10000')
-        q = Queue(self.path)
-        for i in range(BENCHMARK_COUNT):
-            q.put('bench%d' % i)
-        q.task_done()
-
-        for i in range(BENCHMARK_COUNT):
-            q.get()
+        assert q.qsize() == 0
 
     @classmethod
     def run(cls):
@@ -147,7 +131,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         BENCHMARK_COUNT = int(sys.argv[1])
     print("<BENCHMARK_COUNT> = {}".format(BENCHMARK_COUNT))
-    transaction = TransactionBench()
-    transaction.run()
-    bulk = BulkBench()
-    bulk.run()
+    file_bench = FileQueueBench()
+    file_bench.run()
+    sql_bench = Sqlite3QueueBench()
+    sql_bench.run()
