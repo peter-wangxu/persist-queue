@@ -169,6 +169,8 @@ class SQLite3QueueTest(unittest.TestCase):
             self.assertNotEqual(0, counter[x],
                                 "not 0 for counter's index %s" % x)
 
+        self.assertEqual(len(set(counter)), len(counter))
+
     def test_task_done_with_restart(self):
         """Test that items are not deleted before task_done."""
 
@@ -308,3 +310,43 @@ class SQLite3UniqueQueueTest(unittest.TestCase):
         del q
         q = UniqueQ(self.path)
         self.assertEqual(2, q.size)
+
+    def test_multiple_consumers(self):
+        """Test UniqueQ can be used by multiple consumers."""
+
+        queue = UniqueQ(path=self.path, multithreading=True,
+                        auto_commit=self.auto_commit)
+
+        def producer():
+            for x in range(1000):
+                queue.put('var%d' % x)
+
+        counter = []
+        # Set all to 0
+        for _ in range(1000):
+            counter.append(0)
+
+        def consumer(index):
+            for i in range(200):
+                data = queue.get(block=True)
+                self.assertTrue('var' in data)
+                counter[index * 200 + i] = data
+
+        p = Thread(target=producer)
+        p.start()
+        consumers = []
+        for index in range(5):
+            t = Thread(target=consumer, args=(index,))
+            t.start()
+            consumers.append(t)
+
+        p.join()
+        for t in consumers:
+            t.join()
+
+        self.assertEqual(0, queue.qsize())
+        for x in range(1000):
+            self.assertNotEqual(0, counter[x],
+                                "not 0 for counter's index %s" % x)
+
+        self.assertEqual(len(set(counter)), len(counter))
