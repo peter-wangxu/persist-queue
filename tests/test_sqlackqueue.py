@@ -11,9 +11,9 @@ from persistqueue.sqlackqueue import SQLiteAckQueue, FILOSQLiteAckQueue, UniqueA
 from persistqueue import Empty
 
 
-class SQLite3QueueTest(unittest.TestCase):
+class SQLite3AckQueueTest(unittest.TestCase):
     def setUp(self):
-        self.path = tempfile.mkdtemp(suffix='sqlqueue')
+        self.path = tempfile.mkdtemp(suffix='sqlackqueue')
         self.auto_commit = True
 
     def tearDown(self):
@@ -169,36 +169,6 @@ class SQLite3QueueTest(unittest.TestCase):
             self.assertNotEqual(0, counter[x],
                                 "not 0 for counter's index %s" % x)
 
-    def test_task_done_with_restart(self):
-        """Test that items are not deleted before task_done."""
-
-        q = SQLiteAckQueue(path=self.path,
-                           # auto_commit=False
-                           )
-
-        for i in range(1, 11):
-            q.put(i)
-
-        self.assertEqual(1, q.get())
-        self.assertEqual(2, q.get())
-        # size is correct before task_done
-        self.assertEqual(8, q.qsize())
-        q.task_done()
-        # make sure the size still correct
-        self.assertEqual(8, q.qsize())
-
-        self.assertEqual(3, q.get())
-        # without task done
-        del q
-#         q = SQLiteAckQueue(path=self.path,
-#                            # auto_commit=False
-#                            )
-#         # After restart, the qsize and head item are the same
-#         self.assertEqual(8, q.qsize())
-#         # After restart, the queue still works
-#         self.assertEqual(3, q.get())
-#         self.assertEqual(7, q.qsize())
-
     def test_protocol_1(self):
         shutil.rmtree(self.path, ignore_errors=True)
         q = SQLiteAckQueue(path=self.path)
@@ -208,29 +178,66 @@ class SQLite3QueueTest(unittest.TestCase):
         q = SQLiteAckQueue(path=self.path)
         self.assertEqual(q.protocol, None)
 
+    def test_ack_and_clear(self):
+        q = SQLiteAckQueue(path=self.path)
+        q._MAX_ACKED_LENGTH = 10
+        ret_list = []
+        for _ in range(100):
+            q.put("val%s" % _)
+        for _ in range(100):
+            ret_list.append(q.get())
+        for ret in ret_list:
+            q.ack(ret)
+        self.assertEqual(q.acked_count(), 100)
+        q.clear_acked_data()
+        self.assertEqual(q.acked_count(), 10)
 
-class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
-    def setUp(self):
-        self.path = tempfile.mkdtemp(suffix='sqlqueue_auto_commit')
-        self.auto_commit = False
+    def test_ack_unknown_item(self):
+        q = SQLiteAckQueue(path=self.path)
+        q.put("val1")
+        val1 = q.get()
+        q.ack("val2")
+        q.nack("val3")
+        q.ack_failed("val4")
+        self.assertEqual(q.qsize(), 0)
+        self.assertEqual(q.unack_count(), 1)
+        q.ack(val1)
+        self.assertEqual(q.unack_count(), 0)
 
-    def test_multiple_consumers(self):
-        """
-        FAIL: test_multiple_consumers (
-        -tests.test_sqlqueue.SQLite3QueueNoAutoCommitTest)
-        Test sqlqueue can be used by multiple consumers.
-        ----------------------------------------------------------------------
-        Traceback (most recent call last):
-        File "persist-queue\tests\test_sqlqueue.py", line 183,
-        -in test_multiple_consumers
-        self.assertEqual(0, queue.qsize())
-        AssertionError: 0 != 72
-        :return:
-        """
-        self.skipTest('Skipped due to a known bug above.')
+    def test_ack_unack_ack_failed(self):
+        q = SQLiteAckQueue(path=self.path)
+        q.put("val1")
+        q.put("val2")
+        q.put("val3")
+        val1 = q.get()
+        val2 = q.get()
+        val3 = q.get()
+        # qsize should be zero when all item is getted from q
+        self.assertEqual(q.qsize(), 0)
+        self.assertEqual(q.unack_count(), 3)
+        # nack will let the item requeued as ready status
+        q.nack(val1)
+        self.assertEqual(q.qsize(), 1)
+        self.assertEqual(q.ready_count(), 1)
+        # ack failed is just mark item as ack failed
+        q.ack_failed(val3)
+        self.assertEqual(q.ack_failed_count(), 1)
+        # ack should not effect qsize
+        q.ack(val2)
+        self.assertEqual(q.acked_count(), 1)
+        self.assertEqual(q.qsize(), 1)
+        # all ack* related action will reduce unack count
+        self.assertEqual(q.unack_count(), 0)
+        # reget the nacked item
+        ready_val = q.get()
+        self.assertEqual(ready_val, val1)
+        q.ack(ready_val)
+        self.assertEqual(q.qsize(), 0)
+        self.assertEqual(q.acked_count(), 2)
+        self.assertEqual(q.ready_count(), 0)
 
 
-class SQLite3QueueInMemory(SQLite3QueueTest):
+class SQLite3QueueInMemory(SQLite3AckQueueTest):
     def setUp(self):
         self.path = ":memory:"
         self.auto_commit = True
@@ -260,9 +267,9 @@ class SQLite3QueueInMemory(SQLite3QueueTest):
         self.skipTest('In memory queue is always new.')
 
 
-class FILOSQLite3QueueTest(unittest.TestCase):
+class FILOSQLite3AckQueueTest(unittest.TestCase):
     def setUp(self):
-        self.path = tempfile.mkdtemp(suffix='filo_sqlqueue')
+        self.path = tempfile.mkdtemp(suffix='filo_sqlackqueue')
         self.auto_commit = True
 
     def tearDown(self):
@@ -287,15 +294,9 @@ class FILOSQLite3QueueTest(unittest.TestCase):
         self.assertEqual('foobar', data)
 
 
-class FILOSQLite3QueueNoAutoCommitTest(FILOSQLite3QueueTest):
-    def setUp(self):
-        self.path = tempfile.mkdtemp(suffix='filo_sqlqueue_auto_commit')
-        self.auto_commit = False
-
-
 class SQLite3UniqueAckQueueTest(unittest.TestCase):
     def setUp(self):
-        self.path = tempfile.mkdtemp(suffix='sqlqueue')
+        self.path = tempfile.mkdtemp(suffix='sqlackqueue')
         self.auto_commit = True
 
     def test_add_duplicate_item(self):

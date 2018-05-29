@@ -17,30 +17,33 @@ log = logging.getLogger(__name__)
 TICK_FOR_WAIT = 10
 
 
+class ACK_STATUS:
+    inited = '0'
+    ready = '1'
+    unack = '2'
+    acked = '5'
+    ack_failed = '9'
+
+
 class SQLiteAckQueue(sqlbase.SQLiteBase):
     """SQLite3 based FIFO queue."""
 
-    _TABLE_NAME = 'queue'
+    _TABLE_NAME = 'ack_queue'
     _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
-    _ACK_STATUS_INITED = "0"  # init status
-    _ACK_STATUS_READY = "1"  # dispatched and nacked status
-    _ACK_STATUS_UNACK = "2"  # get by consumer but not acked
-    _ACK_STATUS_ACKED = "5"  # acked by consumer. rows acked could be cleared due to size limit.
-    _ACK_STATUS_ACKFAILED = "9"  # there was something wrong during consumer process item
     _MAX_ACKED_LENGTH = 1000
     # SQL to create a table
     _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
                    '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
                    'data BLOB, timestamp FLOAT, status INTEGER)')
     # SQL to insert a record
-    _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, status) VALUES (?, ?, %s)' % _ACK_STATUS_INITED
+    _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, status) VALUES (?, ?, %s)' % ACK_STATUS.inited
     # SQL to select a record
     _SQL_SELECT = ('SELECT {key_column}, data, status FROM {table_name} '
                    'WHERE status < %s '
-                   'ORDER BY {key_column} ASC LIMIT 1'  % _ACK_STATUS_UNACK)
+                   'ORDER BY {key_column} ASC LIMIT 1' % ACK_STATUS.unack)
     _SQL_MARK_ACK_UPDATE = 'UPDATE {table_name} SET status = ? WHERE {key_column} = ?'
     _SQL_SELECT_WHERE = 'SELECT {key_column}, data FROM {table_name} WHERE status < %s AND' \
-                        ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '  % _ACK_STATUS_UNACK
+                        ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 ' % ACK_STATUS.unack
 
     def __init__(self, *args, **kwargs):
         super(SQLiteAckQueue, self).__init__(*args, **kwargs)
@@ -59,20 +62,31 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         super(SQLiteAckQueue, self)._init()
         # Action lock to assure multiple action to be *atomic*
         self.action_lock = threading.Lock()
-        if not self.auto_commit:
-            # Refresh current cursor after restart
-            head = self._select()
-            if head:
-                self.cursor = head[0] - 1
-            else:
-                self.cursor = 0
         self.total = self._count()
 
     def _count(self):
         sql = 'SELECT COUNT({}) FROM {} WHERE status < ?'.format(self._key_column,
-                                                self._table_name)
-        row = self._getter.execute(sql, (self._ACK_STATUS_UNACK)).fetchone()
+                                                                 self._table_name)
+        row = self._getter.execute(sql, (ACK_STATUS.unack, )).fetchone()
         return row[0] if row else 0
+
+    def _ack_count_via_status(self, status):
+        sql = 'SELECT COUNT({}) FROM {} WHERE status = ?'.format(self._key_column,
+                                                                 self._table_name)
+        row = self._getter.execute(sql, (status, )).fetchone()
+        return row[0] if row else 0
+
+    def unack_count(self):
+        return self._ack_count_via_status(ACK_STATUS.unack)
+
+    def acked_count(self):
+        return self._ack_count_via_status(ACK_STATUS.acked)
+
+    def ready_count(self):
+        return self._ack_count_via_status(ACK_STATUS.ready)
+
+    def ack_failed_count(self):
+        return self._ack_count_via_status(ACK_STATUS.ack_failed)
 
     @sqlbase.with_conditional_transaction
     def _mark_ack_status(self, key, status):
@@ -80,7 +94,15 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     @sqlbase.with_conditional_transaction
     def clear_acked_data(self):
-        return "DELETE FROM {table_name} WHERE {key_column} IN (SELECT _id FROM {table_name} WHERE status = ? ORDER BY {key_column} DESC LIMIT 1000 OFFSET {max_acked_length})".format(table_name=self._table_name, key_column=self._key_column, max_acked_length=self._MAX_ACKED_LENGTH), self._ACK_STATUS_ACKED
+        sql = """DELETE FROM {table_name}
+            WHERE {key_column} IN (
+                SELECT _id FROM {table_name} WHERE status = ? 
+                ORDER BY {key_column} DESC 
+                LIMIT 1000 OFFSET {max_acked_length}
+            )""".format(table_name=self._table_name,
+                        key_column=self._key_column,
+                        max_acked_length=self._MAX_ACKED_LENGTH)
+        return sql, ACK_STATUS.acked
 
     @property
     def _sql_mark_ack_status(self):
@@ -92,7 +114,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             # Perhaps a sqlite3 bug, sometimes (None, None) is returned
             # by select, below can avoid these invalid records.
             if row and row[0] is not None:
-                self._mark_ack_status(row[0], self._ACK_STATUS_UNACK)
+                self._mark_ack_status(row[0], ACK_STATUS.unack)
                 pickled_data = row[1]  # pickled data
                 item = pickle.loads(pickled_data)
                 self._unack_cache[row[0]] = item
@@ -112,7 +134,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             _id = self._find_item_id(item)
             if _id is None:
                 return
-            self._mark_ack_status(_id, self._ACK_STATUS_ACKED)
+            self._mark_ack_status(_id, ACK_STATUS.acked)
             self._unack_cache.pop(_id)
 
     def ack_failed(self, item):
@@ -120,7 +142,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             _id = self._find_item_id(item)
             if _id is None:
                 return
-            self._mark_ack_status(_id, self._ACK_STATUS_ACKFAILED)
+            self._mark_ack_status(_id, ACK_STATUS.ack_failed)
             self._unack_cache.pop(_id)
 
     def nack(self, item):
@@ -128,8 +150,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             _id = self._find_item_id(item)
             if _id is None:
                 return
-            self._mark_ack_status(_id, self._ACK_STATUS_READY)
+            self._mark_ack_status(_id, ACK_STATUS.ready)
             self._unack_cache.pop(_id)
+            self.total += 1
 
     def get(self, block=True, timeout=None):
         if not block:
@@ -176,21 +199,21 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return self.size
 
 
-FIFOSQLiteQueue = SQLiteAckQueue
+FIFOSQLiteAckQueue = SQLiteAckQueue
 
 
 class FILOSQLiteAckQueue(SQLiteAckQueue):
-    """SQLite3 based FILO queue."""
+    """SQLite3 based FILO queue with ack support."""
 
-    _TABLE_NAME = 'filo_queue'
+    _TABLE_NAME = 'ack_filo_queue'
     # SQL to select a record
     _SQL_SELECT = ('SELECT {key_column}, data FROM {table_name} '
                    'WHERE status < %s '
-                   'ORDER BY {key_column} DESC LIMIT 1'  % SQLiteAckQueue._ACK_STATUS_UNACK)
+                   'ORDER BY {key_column} DESC LIMIT 1' % ACK_STATUS.unack)
 
 
 class UniqueAckQ(SQLiteAckQueue):
-    _TABLE_NAME = 'unique_queue'
+    _TABLE_NAME = 'ack_unique_queue'
     _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
                    '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
                    'data BLOB, timestamp FLOAT, status INTEGER, UNIQUE (data))')
