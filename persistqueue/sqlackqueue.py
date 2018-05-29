@@ -26,7 +26,7 @@ class ACK_STATUS:
 
 
 class SQLiteAckQueue(sqlbase.SQLiteBase):
-    """SQLite3 based FIFO queue."""
+    """SQLite3 based FIFO queue with ack support."""
 
     _TABLE_NAME = 'ack_queue'
     _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
