@@ -7,7 +7,10 @@ import tempfile
 import unittest
 from threading import Thread
 
-from persistqueue.sqlackqueue import SQLiteAckQueue, FILOSQLiteAckQueue, UniqueAckQ
+from persistqueue.sqlackqueue import (
+    SQLiteAckQueue,
+    FILOSQLiteAckQueue,
+    UniqueAckQ)
 from persistqueue import Empty
 
 
@@ -82,8 +85,10 @@ class SQLite3AckQueueTest(unittest.TestCase):
 
         # self.skipTest("Not supported multi-thread.")
 
-        m_queue = SQLiteAckQueue(path=self.path, multithreading=True,
-                              auto_commit=self.auto_commit)
+        m_queue = SQLiteAckQueue(
+            path=self.path, multithreading=True,
+            auto_commit=self.auto_commit
+        )
 
         def producer():
             for i in range(1000):
@@ -106,8 +111,10 @@ class SQLite3AckQueueTest(unittest.TestCase):
 
     def test_multi_threaded_multi_producer(self):
         """Test sqlqueue can be used by multiple producers."""
-        queue = SQLiteAckQueue(path=self.path, multithreading=True,
-                            auto_commit=self.auto_commit)
+        queue = SQLiteAckQueue(
+            path=self.path, multithreading=True,
+            auto_commit=self.auto_commit
+        )
 
         def producer(seq):
             for i in range(10):
@@ -134,8 +141,10 @@ class SQLite3AckQueueTest(unittest.TestCase):
     def test_multiple_consumers(self):
         """Test sqlqueue can be used by multiple consumers."""
 
-        queue = SQLiteAckQueue(path=self.path, multithreading=True,
-                            auto_commit=self.auto_commit)
+        queue = SQLiteAckQueue(
+            path=self.path, multithreading=True,
+            auto_commit=self.auto_commit
+        )
 
         def producer():
             for x in range(1000):

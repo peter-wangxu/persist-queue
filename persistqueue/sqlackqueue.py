@@ -1,4 +1,7 @@
 # coding=utf-8
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
 import logging
 import pickle
 import sqlite3
@@ -6,8 +9,8 @@ import time as _time
 import threading
 import warnings
 
-from persistqueue import sqlbase
-from persistqueue.exceptions import Empty
+from . import sqlbase
+from .exceptions import Empty
 
 sqlite3.enable_callback_tracebacks(True)
 
@@ -36,14 +39,18 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                    '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
                    'data BLOB, timestamp FLOAT, status INTEGER)')
     # SQL to insert a record
-    _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, status) VALUES (?, ?, %s)' % ACK_STATUS.inited
+    _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, status)'\
+        ' VALUES (?, ?, %s)' % ACK_STATUS.inited
     # SQL to select a record
     _SQL_SELECT = ('SELECT {key_column}, data, status FROM {table_name} '
                    'WHERE status < %s '
                    'ORDER BY {key_column} ASC LIMIT 1' % ACK_STATUS.unack)
-    _SQL_MARK_ACK_UPDATE = 'UPDATE {table_name} SET status = ? WHERE {key_column} = ?'
-    _SQL_SELECT_WHERE = 'SELECT {key_column}, data FROM {table_name} WHERE status < %s AND' \
-                        ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 ' % ACK_STATUS.unack
+    _SQL_MARK_ACK_UPDATE = 'UPDATE {table_name} SET status = ?'\
+        ' WHERE {key_column} = ?'
+    _SQL_SELECT_WHERE = 'SELECT {key_column}, data FROM {table_name}'\
+        ' WHERE status < %s AND' \
+        ' {column} {op} ? ORDER BY {key_column} ASC'\
+        ' LIMIT 1 ' % ACK_STATUS.unack
 
     def __init__(self, *args, **kwargs):
         super(SQLiteAckQueue, self).__init__(*args, **kwargs)
@@ -65,14 +72,16 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         self.total = self._count()
 
     def _count(self):
-        sql = 'SELECT COUNT({}) FROM {} WHERE status < ?'.format(self._key_column,
-                                                                 self._table_name)
+        sql = 'SELECT COUNT({}) FROM {}'\
+            ' WHERE status < ?'.format(self._key_column,
+                                       self._table_name)
         row = self._getter.execute(sql, (ACK_STATUS.unack, )).fetchone()
         return row[0] if row else 0
 
     def _ack_count_via_status(self, status):
-        sql = 'SELECT COUNT({}) FROM {} WHERE status = ?'.format(self._key_column,
-                                                                 self._table_name)
+        sql = 'SELECT COUNT({}) FROM {}'\
+            ' WHERE status = ?'.format(self._key_column,
+                                       self._table_name)
         row = self._getter.execute(sql, (status, )).fetchone()
         return row[0] if row else 0
 
@@ -96,8 +105,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     def clear_acked_data(self):
         sql = """DELETE FROM {table_name}
             WHERE {key_column} IN (
-                SELECT _id FROM {table_name} WHERE status = ? 
-                ORDER BY {key_column} DESC 
+                SELECT _id FROM {table_name} WHERE status = ?
+                ORDER BY {key_column} DESC
                 LIMIT 1000 OFFSET {max_acked_length}
             )""".format(table_name=self._table_name,
                         key_column=self._key_column,
@@ -106,7 +115,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     @property
     def _sql_mark_ack_status(self):
-        return self._SQL_MARK_ACK_UPDATE.format(table_name=self._table_name, key_column=self._key_column)
+        return self._SQL_MARK_ACK_UPDATE.format(table_name=self._table_name,
+                                                key_column=self._key_column)
 
     def _pop(self):
         with self.action_lock:
@@ -214,9 +224,11 @@ class FILOSQLiteAckQueue(SQLiteAckQueue):
 
 class UniqueAckQ(SQLiteAckQueue):
     _TABLE_NAME = 'ack_unique_queue'
-    _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
-                   '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
-                   'data BLOB, timestamp FLOAT, status INTEGER, UNIQUE (data))')
+    _SQL_CREATE = (
+        'CREATE TABLE IF NOT EXISTS {table_name} ('
+        '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'data BLOB, timestamp FLOAT, status INTEGER, UNIQUE (data))'
+    )
 
     def put(self, item):
         obj = pickle.dumps(item)
