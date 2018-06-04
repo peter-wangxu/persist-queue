@@ -50,7 +50,7 @@ except ImportError: # python < 3.3
                 raise WindowsError(errno, strerror)
 
     else:
-        replace = os.rename # on posix rename can already replace existing files atomically
+        from os import rename as replace # on posix rename can already replace existing files atomically
 
 
 def _truncate(fn, length):
