@@ -150,6 +150,29 @@ This queue does not allow duplicate items.
    2
    >>>
 
+Example usage of SQLite3 based ``SQLiteAckQueue``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The core functions:
+``get``: get from queue and mark item as unack
+``ack``: mark item as acked
+``nack``: there might be something wrong with current consumer, so mark item as ready and new consumer will get it
+``ack_failed``: there might be something wrong during process, so just mark item as failed.
+
+.. code-block:: python
+
+   >>> import persisitqueue
+   >>> ackq = persistqueue.SQLiteAckQueue('path')
+   >>> ackq.put('str1')
+   >>> item = ackq.get()
+   >>> # Do something with the item
+   >>> ackq.ack(item) # If done with the item
+   >>> ackq.nack(item) # Else mark item as `nack` so that it can be proceeded again by any worker
+   >>> ackq.ack_failed() # Or else mark item as `ack_failed` to discard this item
+
+
+
+Note: this queue does not support ``auto_commit=True``
+
 Example usage with a file based queue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -317,6 +340,8 @@ That's saying, the data in ``persistqueue.Queue`` could be in unreadable state w
 
 **DO NOT put any critical data on persistqueue.queue on Windows**.
 
+This issue is under track by issue `Atomic renames on windows <https://github.com/peter-wangxu/persist-queue/issues/48>`_
+
 Contribution
 ------------
 
@@ -329,6 +354,11 @@ License
 
 `BSD <LICENSE>`_
 
+Contributors
+------------
+
+`Contributors <https://github.com/peter-wangxu/persist-queue/graphs/contributors>`_
+
 FAQ
 ---
 
@@ -339,3 +369,9 @@ SQLite database is locked until that transaction is committed. The ``timeout``
 parameter specifies how long the connection should wait for the lock to go away
 until raising an exception. Default time is **10**, increase ``timeout``
 when creating the queue if above error occurs.
+
+* sqlite3 based queues are not thread-safe.
+
+The sqlite3 queues are heavily tested under multi-threading environment, if you find it's not thread-safe, please
+make sure you set the ``multithreading=True`` when initializing the queue before submitting new issue:).
+
