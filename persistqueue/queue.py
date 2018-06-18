@@ -16,6 +16,43 @@ from persistqueue import common
 log = logging.getLogger(__name__)
 
 
+try:
+    from os import replace
+
+except ImportError: # python < 3.3
+
+    import sys
+
+    if sys.platform == "win32":
+        import ctypes, os
+
+        if sys.version_info[0] == 2:
+            _str = unicode
+            _bytes = str
+        else:
+            _str = str
+            _bytes = bytes
+
+        def replace(src, dst):
+
+            if isinstance(src, _str) and isinstance(dst, _str):
+                MoveFileEx = ctypes.windll.kernel32.MoveFileExW
+            elif isinstance(src, _bytes) and isinstance(dst, _bytes):
+                MoveFileEx = ctypes.windll.kernel32.MoveFileExA
+            else:
+                raise ValueError("Arguments must be both bytes or both unicode")
+
+            MOVEFILE_REPLACE_EXISTING = 0x1
+
+            if not MoveFileEx(src, dst, MOVEFILE_REPLACE_EXISTING):
+                errno = ctypes.GetLastError()
+                strerror = os.strerror(errno)
+                raise WindowsError(errno, strerror)
+
+    else:
+        from os import rename as replace # on posix rename can already replace existing files atomically
+
+
 def _truncate(fn, length):
     with open(fn, 'ab+') as f:
         f.truncate(length)
@@ -218,15 +255,7 @@ class Queue(object):
         tmpfd, tmpfn = self._gettempfile()
         os.write(tmpfd, pickle.dumps(self.info))
         os.close(tmpfd)
-        # POSIX requires that 'rename' is an atomic operation
-        try:
-            os.rename(tmpfn, self._infopath())
-        except OSError as e:
-            if getattr(e, 'winerror', None) == 183:
-                os.remove(self._infopath())
-                os.rename(tmpfn, self._infopath())
-            else:
-                raise
+        replace(tmpfn, self._infopath()) # atomic
         self._clear_tail_file()
 
     def _clear_tail_file(self):
