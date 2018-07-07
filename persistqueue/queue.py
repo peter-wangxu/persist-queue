@@ -21,6 +21,40 @@ def _truncate(fn, length):
         f.truncate(length)
 
 
+def atomic_rename(src, dst):
+    try:
+        os.replace(src, dst)
+    except AttributeError:  # python < 3.3
+        import sys
+
+        if sys.platform == 'win32':
+            import ctypes
+
+            if sys.version_info[0] == 2:
+                _str = unicode
+                _bytes = str
+            else:
+                _str = str
+                _bytes = bytes
+
+            if isinstance(src, _str) and isinstance(dst, _str):
+                MoveFileEx = ctypes.windll.kernel32.MoveFileExW
+            elif isinstance(src, _bytes) and isinstance(dst, _bytes):
+                MoveFileEx = ctypes.windll.kernel32.MoveFileExA
+            else:
+                raise ValueError("Both args must be bytes or unicode.")
+
+            MOVEFILE_REPLACE_EXISTING = 0x1
+
+            if not MoveFileEx(src, dst, MOVEFILE_REPLACE_EXISTING):
+                errno = ctypes.GetLastError()
+                strerror = os.strerror(errno)
+                raise WindowsError(errno, strerror)
+
+        else:
+            os.rename(src, dst)
+
+
 class Queue(object):
     def __init__(self, path, maxsize=0, chunksize=100, tempdir=None):
         """Create a persistent queue object on a given path.
@@ -218,15 +252,7 @@ class Queue(object):
         tmpfd, tmpfn = self._gettempfile()
         os.write(tmpfd, pickle.dumps(self.info))
         os.close(tmpfd)
-        # POSIX requires that 'rename' is an atomic operation
-        try:
-            os.rename(tmpfn, self._infopath())
-        except OSError as e:
-            if getattr(e, 'winerror', None) == 183:
-                os.remove(self._infopath())
-                os.rename(tmpfn, self._infopath())
-            else:
-                raise
+        atomic_rename(tmpfn, self._infopath())
         self._clear_tail_file()
 
     def _clear_tail_file(self):
