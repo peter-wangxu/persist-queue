@@ -52,12 +52,23 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         ' {column} {op} ? ORDER BY {key_column} ASC'\
         ' LIMIT 1 ' % AckStatus.unack
 
-    def __init__(self, *args, **kwargs):
-        super(SQLiteAckQueue, self).__init__(*args, **kwargs)
+    def __init__(self, path, auto_resume=True, **kwargs):
+        super(SQLiteAckQueue, self).__init__(path, **kwargs)
         if not self.auto_commit:
             warnings.warn("disable auto commit is not support in ack queue")
             self.auto_commit = True
         self._unack_cache = {}
+        if auto_resume:
+            self.resume_unack_tasks()
+
+    @sqlbase.with_conditional_transaction
+    def resume_unack_tasks(self):
+        unack_count = self.unack_count()
+        if unack_count:
+            log.warning("resume %d unack tasks", unack_count)
+        sql = 'UPDATE {} set status = ?'\
+            ' WHERE status = ?'.format(self._table_name)
+        return sql, (AckStatus.ready, AckStatus.unack, )
 
     def put(self, item):
         obj = pickle.dumps(item, protocol=self.protocol)

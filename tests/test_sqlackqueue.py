@@ -213,6 +213,32 @@ class SQLite3AckQueueTest(unittest.TestCase):
         q.ack(val1)
         self.assertEqual(q.unack_count(), 0)
 
+    def test_resume_unack(self):
+        q = SQLiteAckQueue(path=self.path)
+        q.put("val1")
+        val1 = q.get()
+        self.assertEqual(q.qsize(), 0)
+        self.assertEqual(q.unack_count(), 1)
+        self.assertEqual(q.ready_count(), 0)
+        del q
+
+        q = SQLiteAckQueue(path=self.path, auto_resume=False)
+        self.assertEqual(q.qsize(), 0)
+        self.assertEqual(q.unack_count(), 1)
+        self.assertEqual(q.ready_count(), 0)
+        q.resume_unack_tasks()
+        self.assertEqual(q.qsize(), 0)
+        self.assertEqual(q.unack_count(), 0)
+        self.assertEqual(q.ready_count(), 1)
+        self.assertEqual(val1, q.get())
+        del q
+
+        q = SQLiteAckQueue(path=self.path, auto_resume=True)
+        self.assertEqual(q.qsize(), 0)
+        self.assertEqual(q.unack_count(), 0)
+        self.assertEqual(q.ready_count(), 1)
+        self.assertEqual(val1, q.get())
+
     def test_ack_unack_ack_failed(self):
         q = SQLiteAckQueue(path=self.path)
         q.put("val1")
@@ -274,6 +300,9 @@ class SQLite3QueueInMemory(SQLite3AckQueueTest):
 
     def test_protocol_2(self):
         self.skipTest('In memory queue is always new.')
+
+    def test_resume_unack(self):
+        self.skipTest('Memory based sqlite is not persistent.')
 
 
 class FILOSQLite3AckQueueTest(unittest.TestCase):
