@@ -1,6 +1,5 @@
 # coding=utf-8
 
-import mock
 import os
 import pickle
 import random
@@ -226,30 +225,6 @@ class PersistTest(unittest.TestCase):
         # the second and third files get removed after task_done
         q.task_done()
         self.assertEqual(q.qsize(), 4)
-
-    def test_windows_error(self):
-        """Test the rename restrictions of Windows"""
-        q = Queue(self.path)
-        q.put(b'a')
-        fake_error = OSError('Cannot create a file when'
-                             'that file already exists')
-        setattr(fake_error, 'winerror', 183)
-        os_rename = os.rename
-        i = []
-
-        def fake_remove(src, dst):
-            if not i:
-                i.append(1)
-                raise fake_error
-            else:
-                i.append(2)
-                os_rename(src, dst)
-
-        with mock.patch('os.rename', new=fake_remove):
-            q.put(b'b')
-
-        self.assertTrue(b'a', q.get())
-        self.assertTrue(b'b', q.get())
 
     def test_protocol_1(self):
         shutil.rmtree(self.path)

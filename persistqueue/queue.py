@@ -31,7 +31,7 @@ def atomic_rename(src, dst):
             import ctypes
 
             if sys.version_info[0] == 2:
-                _str = unicode
+                _str = unicode # noqa
                 _bytes = str
             else:
                 _str = str
