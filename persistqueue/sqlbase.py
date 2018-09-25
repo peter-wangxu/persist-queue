@@ -101,9 +101,8 @@ class SQLiteBase(object):
             if not self.memory_sql:
                 self._putter = self._new_db_connection(
                     self.path, self.multithreading, self.timeout)
-        if self.protocol is not None:
-            self._conn.text_factory = str
-            self._putter.text_factory = str
+        self._conn.text_factory = str
+        self._putter.text_factory = str
 
         # SQLite3 transaction lock
         self.tran_lock = threading.Lock()
