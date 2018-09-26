@@ -156,6 +156,9 @@ class Queue(object):
         if hpos == self.info['chunksize']:
             hpos = 0
             hnum += 1
+            # make sure data is written to disk whatever
+            # its underlying file system
+            os.fsync(self.headf.fileno())
             self.headf.close()
             self.headf = self._openchunk(hnum, 'ab+')
         self.info['size'] += 1
