@@ -4,13 +4,13 @@
 
 import logging
 import os
-import pickle
 import tempfile
 
 import threading
 from time import time as _time
+
+import persistqueue.serializers.pickle
 from persistqueue.exceptions import Empty, Full
-from persistqueue import common
 
 
 log = logging.getLogger(__name__)
@@ -56,7 +56,8 @@ def atomic_rename(src, dst):
 
 
 class Queue(object):
-    def __init__(self, path, maxsize=0, chunksize=100, tempdir=None):
+    def __init__(self, path, maxsize=0, chunksize=100, tempdir=None,
+                 serializer=persistqueue.serializers.pickle):
         """Create a persistent queue object on a given path.
 
         The argument path indicates a directory where enqueued data should be
@@ -68,13 +69,20 @@ class Queue(object):
         The tempdir parameter indicates where temporary files should be stored.
         The tempdir has to be located on the same disk as the enqueued data in
         order to obtain atomic operations.
+
+        The serializer parameter controls how enqueued data is serialized. It
+        must have methods dump(value, fp) and load(fp). The dump method must
+        serialize value and write it to fp, and may be called for multiple
+        values with the same fp. The load method must deserialize and return
+        one value from fp, and may be called multiple times with the same fp
+        to read multiple values.
         """
         log.debug('Initializing File based Queue with path {}'.format(path))
         self.path = path
         self.chunksize = chunksize
         self.tempdir = tempdir
         self.maxsize = maxsize
-        self.protocol = None
+        self.serializer = serializer
         self._init(maxsize)
         if self.tempdir:
             if os.stat(self.path).st_dev != os.stat(self.tempdir).st_dev:
@@ -106,7 +114,6 @@ class Queue(object):
 
         if not os.path.exists(self.path):
             os.makedirs(self.path)
-            self.protocol = common.select_pickle_protocol()
 
     def join(self):
         with self.all_tasks_done:
@@ -149,7 +156,7 @@ class Queue(object):
             self.not_full.release()
 
     def _put(self, item):
-        pickle.dump(item, self.headf)
+        self.serializer.dump(item, self.headf)
         self.headf.flush()
         hnum, hpos, _ = self.info['head']
         hpos += 1
@@ -200,7 +207,7 @@ class Queue(object):
         hnum, hcnt, _ = self.info['head']
         if [tnum, tcnt] >= [hnum, hcnt]:
             return None
-        data = pickle.load(self.tailf)
+        data = self.serializer.load(self.tailf)
         toffset = self.tailf.tell()
         tcnt += 1
         if tcnt == self.info['chunksize'] and tnum <= hnum:
@@ -235,7 +242,7 @@ class Queue(object):
         infopath = self._infopath()
         if os.path.exists(infopath):
             with open(infopath, 'rb') as f:
-                info = pickle.load(f)
+                info = self.serializer.load(f)
         else:
             info = {
                 'chunksize': self.chunksize,
@@ -253,8 +260,8 @@ class Queue(object):
 
     def _saveinfo(self):
         tmpfd, tmpfn = self._gettempfile()
-        os.write(tmpfd, pickle.dumps(self.info))
-        os.close(tmpfd)
+        with os.fdopen(tmpfd, "wb") as tmpfo:
+            self.serializer.dump(self.info, tmpfo)
         atomic_rename(tmpfn, self._infopath())
         self._clear_tail_file()
 
