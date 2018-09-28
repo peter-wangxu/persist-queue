@@ -12,7 +12,6 @@ from time import time as _time
 import persistqueue.serializers.pickle
 from persistqueue.exceptions import Empty, Full
 
-
 log = logging.getLogger(__name__)
 
 
@@ -31,7 +30,7 @@ def atomic_rename(src, dst):
             import ctypes
 
             if sys.version_info[0] == 2:
-                _str = unicode # noqa
+                _str = unicode  # noqa
                 _bytes = str
             else:
                 _str = str
@@ -88,6 +87,16 @@ class Queue(object):
             if os.stat(self.path).st_dev != os.stat(self.tempdir).st_dev:
                 raise ValueError("tempdir has to be located "
                                  "on same path filesystem")
+        else:
+            _, tempdir = tempfile.mkstemp()
+            if os.stat(self.path).st_dev != os.stat(tempdir).st_dev:
+                self.tempdir = self.path
+                log.warning("Default tempdir '%(dft_dir)s' is not on the "
+                            "same filesystem with queue path '%(queue_path)s'"
+                            ",defaulting to '%(new_path)s'." % {
+                                "dft_dir": tempdir,
+                                "queue_path": self.path,
+                                "new_path": self.tempdir})
         self.info = self._loadinfo()
         # truncate head case it contains garbage
         hnum, hcnt, hoffset = self.info['head']
