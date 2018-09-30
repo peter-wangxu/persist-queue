@@ -1,5 +1,9 @@
 [run]
 branch = True
-include = persistqueue/*
+source = persistqueue/*
+omit =
+    ./tests/*
+    ./.tox/*
+    ./setup.py
 [xml]
 output = coverage.xml
