@@ -3,6 +3,13 @@
 
 from setuptools import setup, find_packages
 
+
+def get_extras():
+    return {
+        "EXTRA": open("extra-requirements.txt").read().splitlines()
+    }
+
+
 setup(
     name='persist-queue',
     version=__import__('persistqueue').__version__,
@@ -16,6 +23,7 @@ setup(
     maintainer_email='wangxu198709@gmail.com',
     license=__import__('persistqueue').__license__,
     packages=find_packages(),
+    extras_require=get_extras(),
     platforms=["all"],
     url='http://github.com/peter-wangxu/persist-queue',
     classifiers=[
