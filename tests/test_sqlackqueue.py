@@ -185,7 +185,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
 
     def test_protocol_2(self):
         q = SQLiteAckQueue(path=self.path)
-        self.assertEqual(q.protocol, None)
+        self.assertEqual(q.protocol, 2 if sys.version_info[0] == 2 else 4)
 
     def test_ack_and_clear(self):
         q = SQLiteAckQueue(path=self.path)

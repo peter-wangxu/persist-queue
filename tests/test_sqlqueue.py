@@ -204,7 +204,7 @@ class SQLite3QueueTest(unittest.TestCase):
 
     def test_protocol_2(self):
         q = SQLiteQueue(path=self.path)
-        self.assertEqual(q.protocol, None)
+        self.assertEqual(q.protocol, 2 if sys.version_info[0] == 2 else 4)
 
 
 class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
