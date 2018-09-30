@@ -85,8 +85,12 @@ Here are the results for writing/reading **1000** items to the disk comparing th
 +---------------+---------+-------------------------+----------------------------+
 | SQLite3 Queue | 1.8880  | 2.0290                  | 3.5940                     |
 +---------------+---------+-------------------------+----------------------------+
-| File Queue    | 15.0550 | 15.9150                 | 30.7650                    |
+| File Queue    | 4.9520  | 5.0560                  | 8.4900                     |
 +---------------+---------+-------------------------+----------------------------+
+
+**windows note**
+Performance of Windows File Queue has dramatic improvement since `v0.4.1` due to the
+atomic renaming support(3-4X faster)
 
 - Linux
     - OS: Ubuntu 16.04 (VM)
