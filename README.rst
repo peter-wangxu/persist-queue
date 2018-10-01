@@ -23,7 +23,7 @@ persist-queue - A thread-safe, disk-based queue for Python
 While *queuelib* and *python-pqueue* cannot fulfil all of above. After some try, I found it's hard to achieve based on their current
 implementation without huge code change. this is the motivation to start this project.
 
-*persist-queue* use *pickle* object serialization module to support object instances.
+By default, *persist-queue* use *pickle* object serialization module to support object instances.
 Most built-in type, like `int`, `dict`, `list` are able to be persisted by `persist-queue` directly, to support customized objects,
 please refer to `Pickling and unpickling extension types(Python2) <https://docs.python.org/2/library/pickle.html#pickling-and-unpickling-normal-class-instances>`_
 and `Pickling Class Instances(Python3) <https://docs.python.org/3/library/pickle.html#pickling-class-instances>`_
@@ -37,6 +37,16 @@ Requirements
 * Full support for Linux.
 * Windows support (with `Caution`_ if ``persistqueue.Queue`` is used).
 
+Features
+--------
+
+- Multiple platforms support: Linux, macOS, Windows
+- Pure python
+- Both filed based queues and sqlite3 based queues are supported
+- Filed based queue: multiple serialization protocol support: pickle(default), msgpack, json
+
+
+
 Installation
 ------------
 
@@ -46,6 +56,9 @@ from pypi
 .. code-block:: console
 
     pip install persist-queue
+    # for msgpack support, use following command
+    pip install persist-queue[EXTRA]
+
 
 from source code
 ^^^^^^^^^^^^^^^^
@@ -72,8 +85,12 @@ Here are the results for writing/reading **1000** items to the disk comparing th
 +---------------+---------+-------------------------+----------------------------+
 | SQLite3 Queue | 1.8880  | 2.0290                  | 3.5940                     |
 +---------------+---------+-------------------------+----------------------------+
-| File Queue    | 15.0550 | 15.9150                 | 30.7650                    |
+| File Queue    | 4.9520  | 5.0560                  | 8.4900                     |
 +---------------+---------+-------------------------+----------------------------+
+
+**windows note**
+Performance of Windows File Queue has dramatic improvement since `v0.4.1` due to the
+atomic renaming support(3-4X faster)
 
 - Linux
     - OS: Ubuntu 16.04 (VM)
@@ -88,8 +105,23 @@ Here are the results for writing/reading **1000** items to the disk comparing th
 | File Queue    | 0.9123 | 1.0411                  | 2.5104                     |
 +---------------+--------+-------------------------+----------------------------+
 
+- Mac OS
+    - OS: 10.14 (macOS Mojave)
+    - Disk: PCIe SSD
+    - RAM:  16 GiB
 
-**note** Above result was got from:
++---------------+--------+-------------------------+----------------------------+
+|               | Write  | Write/Read(1 task_done) | Write/Read(many task_done) |
++---------------+--------+-------------------------+----------------------------+
+| SQLite3 Queue | 0.1879 | 0.2115                  | 0.3147                     |
++---------------+--------+-------------------------+----------------------------+
+| File Queue    | 0.5158 | 0.5357                  | 1.0446                     |
++---------------+--------+-------------------------+----------------------------+
+
+**note**
+
+- The value above is seconds for reading/writing *1000* items, the less the better.
+- Above result was got from:
 
 .. code-block:: console
 
@@ -153,10 +185,11 @@ This queue does not allow duplicate items.
 Example usage of SQLite3 based ``SQLiteAckQueue``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The core functions:
-``get``: get from queue and mark item as unack
-``ack``: mark item as acked
-``nack``: there might be something wrong with current consumer, so mark item as ready and new consumer will get it
-``ack_failed``: there might be something wrong during process, so just mark item as failed.
+
+- ``get``: get from queue and mark item as unack
+- ``ack``: mark item as acked
+- ``nack``: there might be something wrong with current consumer, so mark item as ready and new consumer will get it
+- ``ack_failed``: there might be something wrong during process, so just mark item as failed.
 
 .. code-block:: python
 
@@ -280,6 +313,20 @@ multi-thread usage for **Queue**
     q.join()       # block until all tasks are done
 
 
+Serialization via msgpack/json
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**Currently only available for file based Queue**
+
+.. code-block:: python
+
+    >>> from persistqueue
+    >>> q = persistqueue.Queue('mypath', persistqueue.serializers.msgpack)
+    >>> # via json
+    >>> # q = Queue('mypath', persistqueue.serializers.json)
+    >>> q.get()
+    'b'
+    >>> q.task_done()
+
 Tips
 ----
 
@@ -335,12 +382,11 @@ Available ``<PYTHON_VERSION>``: ``py27``, ``py34``, ``py35``, ``py36``, ``py37``
 Caution
 -------
 
-Currently, the atomic operation is not supported on Windows due to the limitation of Python's `os.rename <https://docs.python.org/2/library/os.html#os.rename>`_,
+Currently, the atomic operation is supported on Windows while still in experimental,
 That's saying, the data in ``persistqueue.Queue`` could be in unreadable state when an incidental failure occurs during ``Queue.task_done``.
 
 **DO NOT put any critical data on persistqueue.queue on Windows**.
 
-This issue is under track by issue `Atomic renames on windows <https://github.com/peter-wangxu/persist-queue/issues/48>`_
 
 Contribution
 ------------

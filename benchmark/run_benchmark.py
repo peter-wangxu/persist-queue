@@ -112,6 +112,7 @@ class Sqlite3QueueBench(object):
 
         for i in range(BENCHMARK_COUNT):
             q.get()
+            q.task_done()
         assert q.qsize() == 0
 
     @classmethod

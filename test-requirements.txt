@@ -6,4 +6,3 @@ nose2>=0.6.5
 coverage!=4.5
 cov_core>=1.15.0
 virtualenv>=15.1.0
-

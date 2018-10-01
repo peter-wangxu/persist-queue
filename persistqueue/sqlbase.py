@@ -86,8 +86,8 @@ class SQLiteBase(object):
             os.makedirs(self.path)
             log.debug(
                 'Initializing Sqlite3 Queue with path {}'.format(self.path))
-            # Set to current highest pickle protocol for new queue.
-            self.protocol = common.select_pickle_protocol()
+        # Set to current highest pickle protocol for new queue.
+        self.protocol = common.select_pickle_protocol()
 
         self._conn = self._new_db_connection(
             self.path, self.multithreading, self.timeout)
