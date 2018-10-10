@@ -4,10 +4,13 @@ __license__ = 'BSD'
 __version__ = '0.4.1'
 
 from .exceptions import Empty, Full  # noqa
-from .pdict import PDict  # noqa
 from .queue import Queue  # noqa
-from .sqlqueue import SQLiteQueue, FIFOSQLiteQueue, FILOSQLiteQueue, UniqueQ  # noqa
-from .sqlackqueue import SQLiteAckQueue
+try:
+    from .pdict import PDict  # noqa
+    from .sqlqueue import SQLiteQueue, FIFOSQLiteQueue, FILOSQLiteQueue, UniqueQ  # noqa
+    from .sqlackqueue import SQLiteAckQueue
+except ImportError as error:
+    pass
 
 __all__ = ["Queue", "SQLiteQueue", "FIFOSQLiteQueue", "FILOSQLiteQueue",
            "UniqueQ", "PDict", "SQLiteAckQueue", "Empty", "Full",
