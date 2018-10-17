@@ -4,10 +4,15 @@ __license__ = 'BSD'
 __version__ = '0.4.1'
 
 from .exceptions import Empty, Full  # noqa
-from .pdict import PDict  # noqa
 from .queue import Queue  # noqa
-from .sqlqueue import SQLiteQueue, FIFOSQLiteQueue, FILOSQLiteQueue, UniqueQ  # noqa
-from .sqlackqueue import SQLiteAckQueue
+try:
+    from .pdict import PDict  # noqa
+    from .sqlqueue import SQLiteQueue, FIFOSQLiteQueue, FILOSQLiteQueue, UniqueQ  # noqa
+    from .sqlackqueue import SQLiteAckQueue
+except ImportError as error:
+    import logging
+    log = logging.getLogger(__name__)
+    log.info("No sqlite3 module found, sqlite3 based queues are not available")
 
 __all__ = ["Queue", "SQLiteQueue", "FIFOSQLiteQueue", "FILOSQLiteQueue",
            "UniqueQ", "PDict", "SQLiteAckQueue", "Empty", "Full",
