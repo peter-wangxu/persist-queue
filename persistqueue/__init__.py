@@ -10,7 +10,9 @@ try:
     from .sqlqueue import SQLiteQueue, FIFOSQLiteQueue, FILOSQLiteQueue, UniqueQ  # noqa
     from .sqlackqueue import SQLiteAckQueue
 except ImportError as error:
-    pass
+    import logging
+    log = logging.getLogger(__name__)
+    log.info("No sqlite3 module found, sqlite3 based queues are not available")
 
 __all__ = ["Queue", "SQLiteQueue", "FIFOSQLiteQueue", "FILOSQLiteQueue",
            "UniqueQ", "PDict", "SQLiteAckQueue", "Empty", "Full",
