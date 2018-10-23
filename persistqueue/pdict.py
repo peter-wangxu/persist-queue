@@ -1,6 +1,5 @@
 #! coding = utf-8
 import logging
-import pickle
 import sqlite3
 
 from persistqueue import sqlbase
@@ -50,7 +49,7 @@ class PDict(sqlbase.SQLiteBase, dict):
         return row is not None
 
     def __setitem__(self, key, value):
-        obj = pickle.dumps(value)
+        obj = self._serializer.dumps(value)
         try:
             self._insert_into(key, obj)
         except sqlite3.IntegrityError:
@@ -59,7 +58,7 @@ class PDict(sqlbase.SQLiteBase, dict):
     def __getitem__(self, item):
         row = self._select(item)
         if row:
-            return pickle.loads(row[1])
+            return self._serializer.loads(row[1])
         else:
             raise KeyError('Key: {} not exists.'.format(item))
 

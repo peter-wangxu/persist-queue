@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import logging
-import pickle
 import sqlite3
 import time as _time
 import threading
@@ -71,7 +70,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return sql, (AckStatus.ready, AckStatus.unack, )
 
     def put(self, item):
-        obj = pickle.dumps(item, protocol=self.protocol)
+        obj = self._serializer.dumps(item)
         self._insert_into(obj, _time.time())
         self.total += 1
         self.put_event.set()
@@ -136,8 +135,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             # by select, below can avoid these invalid records.
             if row and row[0] is not None:
                 self._mark_ack_status(row[0], AckStatus.unack)
-                pickled_data = row[1]  # pickled data
-                item = pickle.loads(pickled_data)
+                serialized_data = row[1]
+                item = self._serializer.loads(serialized_data)
                 self._unack_cache[row[0]] = item
                 self.total -= 1
                 return item
@@ -177,31 +176,31 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     def get(self, block=True, timeout=None):
         if not block:
-            pickled = self._pop()
-            if not pickled:
+            serialized = self._pop()
+            if not serialized:
                 raise Empty
         elif timeout is None:
             # block until a put event.
-            pickled = self._pop()
-            while not pickled:
+            serialized = self._pop()
+            while not serialized:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
-                pickled = self._pop()
+                serialized = self._pop()
         elif timeout < 0:
             raise ValueError("'timeout' must be a non-negative number")
         else:
             # block until the timeout reached
             endtime = _time.time() + timeout
-            pickled = self._pop()
-            while not pickled:
+            serialized = self._pop()
+            while not serialized:
                 self.put_event.clear()
                 remaining = endtime - _time.time()
                 if remaining <= 0.0:
                     raise Empty
                 self.put_event.wait(
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
-                pickled = self._pop()
-        item = pickled
+                serialized = self._pop()
+        item = serialized
         return item
 
     def task_done(self):
@@ -242,7 +241,7 @@ class UniqueAckQ(SQLiteAckQueue):
     )
 
     def put(self, item):
-        obj = pickle.dumps(item)
+        obj = self._serializer.dumps(item)
         try:
             self._insert_into(obj, _time.time())
         except sqlite3.IntegrityError:
