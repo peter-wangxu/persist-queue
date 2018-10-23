@@ -3,7 +3,8 @@ import os
 import sqlite3
 import threading
 
-from persistqueue import common
+import persistqueue.serializers.pickle
+
 
 sqlite3.enable_callback_tracebacks(True)
 
@@ -50,7 +51,8 @@ class SQLiteBase(object):
     _MEMORY = ':memory:'  # flag indicating store DB in memory
 
     def __init__(self, path, name='default', multithreading=False,
-                 timeout=10.0, auto_commit=True):
+                 timeout=10.0, auto_commit=True,
+                 serializer=persistqueue.serializers.pickle):
         """Initiate a queue in sqlite3 or memory.
 
         :param path: path for storing DB file.
@@ -63,8 +65,14 @@ class SQLiteBase(object):
                             INSERT/UPDATE action, otherwise False, whereas
                             a **task_done** is required to persist changes
                             after **put**.
-
-
+        :param serializer: The serializer parameter controls how enqueued data
+                           is serialized. It must have methods dump(value, fp)
+                           and load(fp). The dump method must serialize the
+                           value and write it to fp, and may be called for
+                           multiple values with the same fp. The load method
+                           must deserialize and return one value from fp,
+                           and may be called multiple times with the same fp
+                           to read multiple values.
         """
         self.memory_sql = False
         self.path = path
@@ -72,7 +80,7 @@ class SQLiteBase(object):
         self.timeout = timeout
         self.multithreading = multithreading
         self.auto_commit = auto_commit
-        self.protocol = None
+        self._serializer = serializer
         self._init()
 
     def _init(self):
@@ -81,14 +89,10 @@ class SQLiteBase(object):
         if self.path == self._MEMORY:
             self.memory_sql = True
             log.debug("Initializing Sqlite3 Queue in memory.")
-            self.protocol = common.select_pickle_protocol()
         elif not os.path.exists(self.path):
             os.makedirs(self.path)
             log.debug(
                 'Initializing Sqlite3 Queue with path {}'.format(self.path))
-        # Set to current highest pickle protocol for new queue.
-        self.protocol = common.select_pickle_protocol()
-
         self._conn = self._new_db_connection(
             self.path, self.multithreading, self.timeout)
         self._getter = self._conn

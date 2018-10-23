@@ -3,7 +3,6 @@
 """A thread-safe sqlite3 based persistent queue in Python."""
 
 import logging
-import pickle
 import sqlite3
 import time as _time
 import threading
@@ -37,7 +36,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                         ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
 
     def put(self, item):
-        obj = pickle.dumps(item, protocol=self.protocol)
+        obj = self._serializer.dumps(item)
         self._insert_into(obj, _time.time())
         self.total += 1
         self.put_event.set()
@@ -64,7 +63,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                 if row and row[0] is not None:
                     self._delete(row[0])
                     self.total -= 1
-                    return row[1]  # pickled data
+                    return row[1]  # serialized data
             else:
                 row = self._select(
                     self.cursor, op=">", column=self._KEY_COLUMN)
@@ -76,31 +75,31 @@ class SQLiteQueue(sqlbase.SQLiteBase):
 
     def get(self, block=True, timeout=None):
         if not block:
-            pickled = self._pop()
-            if not pickled:
+            serialized = self._pop()
+            if not serialized:
                 raise Empty
         elif timeout is None:
             # block until a put event.
-            pickled = self._pop()
-            while not pickled:
+            serialized = self._pop()
+            while not serialized:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
-                pickled = self._pop()
+                serialized = self._pop()
         elif timeout < 0:
             raise ValueError("'timeout' must be a non-negative number")
         else:
             # block until the timeout reached
             endtime = _time.time() + timeout
-            pickled = self._pop()
-            while not pickled:
+            serialized = self._pop()
+            while not serialized:
                 self.put_event.clear()
                 remaining = endtime - _time.time()
                 if remaining <= 0.0:
                     raise Empty
                 self.put_event.wait(
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
-                pickled = self._pop()
-        item = pickle.loads(pickled)
+                serialized = self._pop()
+        item = self._serializer.loads(serialized)
         return item
 
     def task_done(self):
@@ -139,7 +138,7 @@ class UniqueQ(SQLiteQueue):
                    'data BLOB, timestamp FLOAT, UNIQUE (data))')
 
     def put(self, item):
-        obj = pickle.dumps(item)
+        obj = self._serializer.dumps(item)
         try:
             self._insert_into(obj, _time.time())
         except sqlite3.IntegrityError:

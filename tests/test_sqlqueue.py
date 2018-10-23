@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from threading import Thread
 
+import persistqueue.serializers
 from persistqueue import SQLiteQueue, FILOSQLiteQueue, UniqueQ
 from persistqueue import Empty
 
@@ -200,11 +201,27 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_protocol_1(self):
         shutil.rmtree(self.path, ignore_errors=True)
         q = SQLiteQueue(path=self.path)
-        self.assertEqual(q.protocol, 2 if sys.version_info[0] == 2 else 4)
+        self.assertEqual(q._serializer.protocol,
+                         2 if sys.version_info[0] == 2 else 4)
 
     def test_protocol_2(self):
         q = SQLiteQueue(path=self.path)
-        self.assertEqual(q.protocol, 2 if sys.version_info[0] == 2 else 4)
+        self.assertEqual(q._serializer.protocol,
+                         2 if sys.version_info[0] == 2 else 4)
+
+    def test_json_serializer(self):
+        q = SQLiteQueue(
+            path=self.path,
+            serializer=persistqueue.serializers.json)
+        x = dict(
+            a=1,
+            b=2,
+            c=dict(
+                d=list(range(5)),
+                e=[1]
+            ))
+        q.put(x)
+        self.assertEquals(q.get(), x)
 
 
 class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
