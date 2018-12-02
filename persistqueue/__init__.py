@@ -9,7 +9,7 @@ try:
     from .pdict import PDict  # noqa
     from .sqlqueue import SQLiteQueue, FIFOSQLiteQueue, FILOSQLiteQueue, UniqueQ  # noqa
     from .sqlackqueue import SQLiteAckQueue
-except ImportError as error:
+except ImportError:
     import logging
     log = logging.getLogger(__name__)
     log.info("No sqlite3 module found, sqlite3 based queues are not available")

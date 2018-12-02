@@ -177,12 +177,12 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     def get(self, block=True, timeout=None):
         if not block:
             serialized = self._pop()
-            if not serialized:
+            if serialized is None:
                 raise Empty
         elif timeout is None:
             # block until a put event.
             serialized = self._pop()
-            while not serialized:
+            while serialized is None:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
                 serialized = self._pop()
@@ -192,7 +192,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             # block until the timeout reached
             endtime = _time.time() + timeout
             serialized = self._pop()
-            while not serialized:
+            while serialized is None:
                 self.put_event.clear()
                 remaining = endtime - _time.time()
                 if remaining <= 0.0:
