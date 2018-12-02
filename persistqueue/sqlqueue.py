@@ -81,7 +81,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         elif timeout is None:
             # block until a put event.
             serialized = self._pop()
-            while not serialized:
+            while serialized is None:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
                 serialized = self._pop()
