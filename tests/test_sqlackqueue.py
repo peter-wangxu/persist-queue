@@ -191,7 +191,6 @@ class SQLite3AckQueueTest(unittest.TestCase):
 
     def test_ack_and_clear(self):
         q = SQLiteAckQueue(path=self.path)
-        q._MAX_ACKED_LENGTH = 10
         ret_list = []
         for _ in range(100):
             q.put("val%s" % _)
@@ -201,7 +200,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
             q.ack(ret)
         self.assertEqual(q.acked_count(), 100)
         q.clear_acked_data()
-        self.assertEqual(q.acked_count(), 10)
+        self.assertEqual(q.acked_count(), 0)
 
     def test_ack_unknown_item(self):
         q = SQLiteAckQueue(path=self.path)
