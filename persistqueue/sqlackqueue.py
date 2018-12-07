@@ -144,7 +144,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     def _find_item_id(self, item):
         for key, value in self._unack_cache.items():
-            if value is item:
+            if value == item:
                 return key
         log.warning("Can't find item %s from unack cache", item)
         return None
