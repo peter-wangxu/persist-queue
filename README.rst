@@ -193,14 +193,14 @@ The core functions:
 
 .. code-block:: python
 
-   >>> import persisitqueue
+   >>> import persistqueue
    >>> ackq = persistqueue.SQLiteAckQueue('path')
    >>> ackq.put('str1')
    >>> item = ackq.get()
    >>> # Do something with the item
    >>> ackq.ack(item) # If done with the item
    >>> ackq.nack(item) # Else mark item as `nack` so that it can be proceeded again by any worker
-   >>> ackq.ack_failed() # Or else mark item as `ack_failed` to discard this item
+   >>> ackq.ack_failed(item) # Or else mark item as `ack_failed` to discard this item
 
 
 
@@ -330,7 +330,7 @@ Serialization via msgpack/json
 Tips
 ----
 
-``task_done`` is required both for filed based queue and SQLite3 based queue (when ``auto_commit=False``)
+``task_done`` is required both for file based queue and SQLite3 based queue (when ``auto_commit=False``)
 to persist the cursor of next ``get`` to the disk.
 
 
