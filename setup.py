@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 def get_extras():
     return {
-        "EXTRA": open("extra-requirements.txt").read().splitlines()
+        "extra": open("extra-requirements.txt").read().splitlines()
     }
 
 

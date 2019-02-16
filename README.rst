@@ -57,7 +57,7 @@ from pypi
 
     pip install persist-queue
     # for msgpack support, use following command
-    pip install persist-queue[EXTRA]
+    pip install persist-queue[extra]
 
 
 from source code
@@ -315,9 +315,16 @@ multi-thread usage for **Queue**
     q.join()       # block until all tasks are done
 
 
+**note**
+
+Due to the limitation of file queue described in issue `#89 <https://github.com/peter-wangxu/persist-queue/issues/89>`_,
+`task_done` in one thread may acknowledge items in other threads which should not be. Considering the `SQLiteAckQueue` if you have such requirement.
+
+
 Serialization via msgpack/json
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**Currently only available for file based Queue**
+- v0.4.1: Currently only available for file based Queue**
+- v0.4.2: Also available for SQLite3 based Queues**
 
 .. code-block:: python
 
@@ -342,7 +349,7 @@ Performance impact
 - **WAL**
 
   Starting on v0.3.2, the ``persistqueue`` is leveraging the sqlite3 builtin feature
-  ``WAL <https://www.sqlite.org/wal.html>`` which can improve the performance
+  `WAL <https://www.sqlite.org/wal.html>`_ which can improve the performance
   significantly, a general testing indicates that ``persistqueue`` is 2-4 times
   faster than previous version.
 
