@@ -11,13 +11,13 @@ import json
 
 def dump(value, fp):
     "Serialize value as json line to a byte-mode file object"
-    fp.write(json.dumps(value).encode())
+    fp.write(json.dumps(value, sort_keys=True).encode())
     fp.write(b"\n")
 
 
 def dumps(value):
     "Serialize value as json to bytes"
-    return json.dumps(value).encode()
+    return json.dumps(value, sort_keys=True).encode()
 
 
 def load(fp):
