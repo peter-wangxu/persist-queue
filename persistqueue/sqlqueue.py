@@ -138,7 +138,7 @@ class UniqueQ(SQLiteQueue):
                    'data BLOB, timestamp FLOAT, UNIQUE (data))')
 
     def put(self, item):
-        obj = self._serializer.dumps(item)
+        obj = self._serializer.dumps(item, sort_keys=True)
         try:
             self._insert_into(obj, _time.time())
         except sqlite3.IntegrityError:

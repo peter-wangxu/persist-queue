@@ -10,16 +10,20 @@ import msgpack
 import struct
 
 
-def dump(value, fp):
+def dump(value, fp, sort_keys=False):
     "Serialize value as msgpack to a byte-mode file object"
+    if sort_keys and isinstance(value, dict):
+        value = {key: value[key] for key in sorted(value)}
     packed = msgpack.packb(value, use_bin_type=True)
     length = struct.pack("<L", len(packed))
     fp.write(length)
     fp.write(packed)
 
 
-def dumps(value):
+def dumps(value, sort_keys=False):
     "Serialize value as msgpack to bytes"
+    if sort_keys and isinstance(value, dict):
+        value = {key: value[key] for key in sorted(value)}
     return msgpack.packb(value, use_bin_type=True)
 
 

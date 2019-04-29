@@ -373,3 +373,11 @@ class SQLite3UniqueQueueTest(unittest.TestCase):
                                 "not 0 for counter's index %s" % x)
 
         self.assertEqual(len(set(counter)), len(counter))
+
+    def test_unique_dictionary_serialization(self):
+        queue = UniqueQ(path=self.path, multithreading=True,
+                        auto_commit=self.auto_commit)
+        queue.put({"foo": 1, "bar": 2})
+        self.assertEqual(queue.total, 1)
+        queue.put({"bar": 2, "foo": 1})
+        self.assertEqual(queue.total, 1)
