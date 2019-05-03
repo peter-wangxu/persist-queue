@@ -9,7 +9,7 @@ from threading import Thread
 
 from persistqueue import SQLiteQueue, FILOSQLiteQueue, UniqueQ
 from persistqueue import Empty
-from persistqueue.serializers import json as internal_json
+from persistqueue import serializers
 
 
 class SQLite3QueueTest(unittest.TestCase):
@@ -212,7 +212,7 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_json_serializer(self):
         q = SQLiteQueue(
             path=self.path,
-            serializer=internal_json)
+            serializer=serializers.json)
         x = dict(
             a=1,
             b=2,
@@ -374,9 +374,37 @@ class SQLite3UniqueQueueTest(unittest.TestCase):
 
         self.assertEqual(len(set(counter)), len(counter))
 
-    def test_unique_dictionary_serialization(self):
-        queue = UniqueQ(path=self.path, multithreading=True,
-                        auto_commit=self.auto_commit)
+    def test_unique_dictionary_serialization_pickle(self):
+        queue = UniqueQ(
+            path=self.path,
+            multithreading=True,
+            auto_commit=self.auto_commit,
+            serializer=serializers.pickle,
+        )
+        queue.put({"foo": 1, "bar": 2})
+        self.assertEqual(queue.total, 1)
+        queue.put({"bar": 2, "foo": 1})
+        self.assertEqual(queue.total, 1)
+
+    def test_unique_dictionary_serialization_msgpack(self):
+        queue = UniqueQ(
+            path=self.path,
+            multithreading=True,
+            auto_commit=self.auto_commit,
+            serializer=serializers.msgpack
+        )
+        queue.put({"foo": 1, "bar": 2})
+        self.assertEqual(queue.total, 1)
+        queue.put({"bar": 2, "foo": 1})
+        self.assertEqual(queue.total, 1)
+
+    def test_unique_dictionary_serialization_json(self):
+        queue = UniqueQ(
+            path=self.path,
+            multithreading=True,
+            auto_commit=self.auto_commit,
+            serializer=serializers.json
+        )
         queue.put({"foo": 1, "bar": 2})
         self.assertEqual(queue.total, 1)
         queue.put({"bar": 2, "foo": 1})
