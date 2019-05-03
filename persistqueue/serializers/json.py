@@ -9,15 +9,15 @@ from __future__ import absolute_import
 import json
 
 
-def dump(value, fp):
+def dump(value, fp, sort_keys=False):
     "Serialize value as json line to a byte-mode file object"
-    fp.write(json.dumps(value).encode())
+    fp.write(json.dumps(value, sort_keys=sort_keys).encode())
     fp.write(b"\n")
 
 
-def dumps(value):
+def dumps(value, sort_keys=False):
     "Serialize value as json to bytes"
-    return json.dumps(value).encode()
+    return json.dumps(value, sort_keys=sort_keys).encode()
 
 
 def load(fp):

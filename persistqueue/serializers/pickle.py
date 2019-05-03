@@ -9,13 +9,17 @@ import pickle
 protocol = common.select_pickle_protocol()
 
 
-def dump(value, fp):
+def dump(value, fp, sort_keys=False):
     "Serialize value as pickle to a byte-mode file object"
+    if sort_keys and isinstance(value, dict):
+        value = {key: value[key] for key in sorted(value)}
     pickle.dump(value, fp, protocol=protocol)
 
 
-def dumps(value):
+def dumps(value, sort_keys=False):
     "Serialize value as pickle to bytes"
+    if sort_keys and isinstance(value, dict):
+        value = {key: value[key] for key in sorted(value)}
     return pickle.dumps(value, protocol=protocol)
 
 

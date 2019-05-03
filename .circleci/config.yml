@@ -24,8 +24,11 @@ jobs:
       - store_artifacts:
           # collect core dumps
           path: /tmp/core_dumps
+      - store_artifacts:
           path: .coverage
+      - store_artifacts:
           path: coverage.xml
+      - store_artifacts:
           path: htmlcov
 
   py34:
