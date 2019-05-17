@@ -5,7 +5,6 @@ import threading
 
 import persistqueue.serializers.pickle
 
-
 sqlite3.enable_callback_tracebacks(True)
 
 log = logging.getLogger(__name__)
@@ -52,7 +51,8 @@ class SQLiteBase(object):
 
     def __init__(self, path, name='default', multithreading=False,
                  timeout=10.0, auto_commit=True,
-                 serializer=persistqueue.serializers.pickle):
+                 serializer=persistqueue.serializers.pickle,
+                 db_file_name=None):
         """Initiate a queue in sqlite3 or memory.
 
         :param path: path for storing DB file.
@@ -73,6 +73,8 @@ class SQLiteBase(object):
                            must deserialize and return one value from fp,
                            and may be called multiple times with the same fp
                            to read multiple values.
+        :param db_file_name: set the db file name of the queue data, otherwise
+                             default to `data.db`
         """
         self.memory_sql = False
         self.path = path
@@ -81,6 +83,9 @@ class SQLiteBase(object):
         self.multithreading = multithreading
         self.auto_commit = auto_commit
         self._serializer = serializer
+        self.db_file_name = "data.db"
+        if db_file_name:
+            self.db_file_name = db_file_name
         self._init()
 
     def _init(self):
@@ -118,7 +123,7 @@ class SQLiteBase(object):
             conn = sqlite3.connect(path,
                                    check_same_thread=not multithreading)
         else:
-            conn = sqlite3.connect('{}/data.db'.format(path),
+            conn = sqlite3.connect('{}/{}'.format(path, self.db_file_name),
                                    timeout=timeout,
                                    check_same_thread=not multithreading)
         conn.execute('PRAGMA journal_mode=WAL;')
