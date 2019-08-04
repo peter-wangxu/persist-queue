@@ -11,17 +11,18 @@ from collections import namedtuple
 from nose2.tools import params
 from threading import Thread
 
-import persistqueue.serializers.json
-import persistqueue.serializers.msgpack
-import persistqueue.serializers.pickle
+from persistqueue.serializers import json as serializers_json
+from persistqueue.serializers import pickle as serializers_pickle
+from persistqueue.serializers import msgpack as serializers_msgpack
+
 from persistqueue import Queue, Empty, Full
 
 # map keys as params for readable errors from nose
 serializer_params = {
     "serializer=default": {},
-    "serializer=json": {"serializer": persistqueue.serializers.json},
-    "serializer=msgpack": {"serializer": persistqueue.serializers.msgpack},
-    "serializer=pickle": {"serializer": persistqueue.serializers.pickle},
+    "serializer=json": {"serializer": serializers_json},
+    "serializer=msgpack": {"serializer": serializers_msgpack},
+    "serializer=pickle": {"serializer": serializers_pickle},
 }
 
 
@@ -258,13 +259,13 @@ class PersistTest(unittest.TestCase):
         # test that protocol is set properly
         expect_protocol = 2 if sys.version_info[0] == 2 else 4
         self.assertEqual(
-            persistqueue.serializers.pickle.protocol,
+            serializers_pickle.protocol,
             expect_protocol,
         )
 
         # test that protocol is used properly
         serializer = namedtuple("Serializer", ["dump", "load"])(
-                persistqueue.serializers.pickle.dump, lambda fp: fp.read())
+                serializers_pickle.dump, lambda fp: fp.read())
 
         q = Queue(path=self.path, serializer=serializer)
         q.put(b'a')

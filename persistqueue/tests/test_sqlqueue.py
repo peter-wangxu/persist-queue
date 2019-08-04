@@ -9,7 +9,9 @@ from threading import Thread
 
 from persistqueue import SQLiteQueue, FILOSQLiteQueue, UniqueQ
 from persistqueue import Empty
-from persistqueue import serializers
+from persistqueue.serializers import json as serializers_json
+from persistqueue.serializers import pickle as serializers_pickle
+from persistqueue.serializers import msgpack as serializers_msgpack
 
 
 class SQLite3QueueTest(unittest.TestCase):
@@ -212,7 +214,7 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_json_serializer(self):
         q = SQLiteQueue(
             path=self.path,
-            serializer=serializers.json)
+            serializer=serializers_json)
         x = dict(
             a=1,
             b=2,
@@ -379,7 +381,7 @@ class SQLite3UniqueQueueTest(unittest.TestCase):
             path=self.path,
             multithreading=True,
             auto_commit=self.auto_commit,
-            serializer=serializers.pickle,
+            serializer=serializers_pickle,
         )
         queue.put({"foo": 1, "bar": 2})
         self.assertEqual(queue.total, 1)
@@ -391,7 +393,7 @@ class SQLite3UniqueQueueTest(unittest.TestCase):
             path=self.path,
             multithreading=True,
             auto_commit=self.auto_commit,
-            serializer=serializers.msgpack
+            serializer=serializers_msgpack
         )
         queue.put({"foo": 1, "bar": 2})
         self.assertEqual(queue.total, 1)
@@ -403,7 +405,7 @@ class SQLite3UniqueQueueTest(unittest.TestCase):
             path=self.path,
             multithreading=True,
             auto_commit=self.auto_commit,
-            serializer=serializers.json
+            serializer=serializers_json
         )
         queue.put({"foo": 1, "bar": 2})
         self.assertEqual(queue.total, 1)
