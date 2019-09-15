@@ -67,6 +67,7 @@ from source code
 
     git clone https://github.com/peter-wangxu/persist-queue
     cd persist-queue
+    # for msgpack support, run 'pip install -r extra-requirements.txt' first
     python setup.py install
 
 
@@ -182,7 +183,7 @@ This queue does not allow duplicate items.
    2
    >>>
 
-Example usage of SQLite3 based ``SQLiteAckQueue``
+Example usage of SQLite3 based ``SQLiteAckQueue``/``UniqueAckQ``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The core functions:
 
@@ -207,7 +208,7 @@ The core functions:
 Note: 
 1. The SQLiteAckQueue always uses "auto_commit=True".
 2. The Queue could be set in non-block style, e.g. "SQLiteAckQueue.get(block=False, timeout=5)".
-
+3. ``UniqueAckQ`` only allows for unique items
 Example usage with a file based queue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
