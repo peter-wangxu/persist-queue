@@ -290,3 +290,9 @@ class Queue(object):
 
     def _infopath(self):
         return os.path.join(self.path, 'info')
+
+    def __del__(self):
+        """Handles the removal of queue."""
+        for to_close in [self.headf, self.tailf, self.info]:
+            if to_close and not to_close.closed:
+                to_close.close()

@@ -337,6 +337,20 @@ Serialization via msgpack/json
     'b'
     >>> q.task_done()
 
+Explicit resource reclaim
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For some reasons, an application may require explicit reclamation for file
+handles or sql connections before end of execution. In these cases, user can
+ simply call:
+.. code-block:: python
+
+    q = Queue() # or q = persistqueue.SQLiteQueue('mypath', auto_commit=True)
+    del q
+
+
+to reclaim related file handles or sql connections.
+
 Tips
 ----
 

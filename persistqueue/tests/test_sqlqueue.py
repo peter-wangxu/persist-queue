@@ -34,6 +34,7 @@ class SQLite3QueueTest(unittest.TestCase):
         self.assertRaises(Empty, q.get, block=True, timeout=1.0)
         # assert with negative timeout
         self.assertRaises(ValueError, q.get, block=True, timeout=-1.0)
+        del q
 
     def test_open_close_single(self):
         """Write 1 item, close, reopen checking if same item is there"""
