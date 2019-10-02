@@ -44,6 +44,7 @@ class PersistTest(unittest.TestCase):
         self.assertEqual(1, q.qsize())
         self.assertEqual('var1', q.get())
         q.task_done()
+        del q
 
     @params(*serializer_params)
     def test_open_close_1000(self, serializer):
