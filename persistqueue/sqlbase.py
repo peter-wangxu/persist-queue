@@ -165,7 +165,7 @@ class SQLiteBase(object):
 
     @property
     def _table_name(self):
-        return '{}_{}'.format(self._TABLE_NAME, self.name)
+        return '`{}_{}`'.format(self._TABLE_NAME, self.name)
 
     @property
     def _key_column(self):
