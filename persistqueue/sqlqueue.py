@@ -115,6 +115,9 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     def qsize(self):
         return self.size
 
+    def empty(self):
+        return self.size == 0
+
     def __len__(self):
         return self.size
 
