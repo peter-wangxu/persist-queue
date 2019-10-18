@@ -35,6 +35,16 @@ class SQLite3AckQueueTest(unittest.TestCase):
         # assert with negative timeout
         self.assertRaises(ValueError, q.get, block=True, timeout=-1.0)
 
+    def test_empty(self):
+        q = SQLiteAckQueue(self.path, auto_commit=self.auto_commit)
+        self.assertEqual(q.empty(), True)
+
+        q.put('first')
+        self.assertEqual(q.empty(), False)
+
+        q.get()
+        self.assertEqual(q.empty(), True)
+
     def test_open_close_single(self):
         """Write 1 item, close, reopen checking if same item is there"""
 

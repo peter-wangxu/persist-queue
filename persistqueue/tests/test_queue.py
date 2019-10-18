@@ -46,6 +46,16 @@ class PersistTest(unittest.TestCase):
         q.task_done()
         del q
 
+    def test_empty(self):
+        q = Queue(self.path)
+        self.assertEqual(q.empty(), True)
+
+        q.put('var1')
+        self.assertEqual(q.empty(), False)
+
+        q.get()
+        self.assertEqual(q.empty(), True)
+
     @params(*serializer_params)
     def test_open_close_1000(self, serializer):
         """Write 1000 items, close, reopen checking if all items are there"""
