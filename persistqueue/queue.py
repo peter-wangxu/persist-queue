@@ -296,6 +296,6 @@ class Queue(object):
 
     def __del__(self):
         """Handles the removal of queue."""
-        for to_close in [self.headf, self.tailf, self.info]:
+        for to_close in [self.headf, self.tailf]:
             if to_close and not to_close.closed:
                 to_close.close()
