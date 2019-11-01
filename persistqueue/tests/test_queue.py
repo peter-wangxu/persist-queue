@@ -281,3 +281,11 @@ class PersistTest(unittest.TestCase):
         q = Queue(path=self.path, serializer=serializer)
         q.put(b'a')
         self.assertEqual(q.get(), pickle.dumps(b'a', protocol=expect_protocol))
+
+    @params(*serializer_params)
+    def test_del(self, serializer):
+        """test that __del__ can be called successfully"""
+        q = Queue(self.path, **serializer_params[serializer])
+        q.__del__()
+        self.assertTrue(q.headf.closed)
+        self.assertTrue(q.tailf.closed)
