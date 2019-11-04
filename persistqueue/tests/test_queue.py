@@ -289,3 +289,37 @@ class PersistTest(unittest.TestCase):
         q.__del__()
         self.assertTrue(q.headf.closed)
         self.assertTrue(q.tailf.closed)
+
+    @params(*serializer_params)
+    def test_autosave_get(self, serializer):
+        """test the autosave feature saves on get()"""
+        q = Queue(self.path, autosave=True, **serializer_params[serializer])
+        q.put('var1')
+        q.put('var2')
+        self.assertEqual('var1', q.get())
+        del q
+        # queue should save on get(), only one item should remain
+        q = Queue(self.path, autosave=True, **serializer_params[serializer])
+        self.assertEqual(1, q.qsize())
+        self.assertEqual('var2', q.get())
+        del q
+
+    @params(*serializer_params)
+    def test_autosave_join(self, serializer):
+        """Enabling autosave should still allow task_done/join behavior"""
+        q = Queue(self.path, autosave=True, **serializer_params[serializer])
+        for i in range(10):
+            q.put('var%d' % i)
+
+        def consumer():
+            for i in range(10):
+                q.get()
+                # this should still 'count down' properly and allow q.join()
+                # to finish
+                q.task_done()
+
+        c = Thread(target=consumer)
+        c.start()
+        q.join()
+        with self.assertRaises(Empty):
+            q.get_nowait()

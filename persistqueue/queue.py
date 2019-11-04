@@ -56,7 +56,8 @@ def atomic_rename(src, dst):
 
 class Queue(object):
     def __init__(self, path, maxsize=0, chunksize=100, tempdir=None,
-                 serializer=persistqueue.serializers.pickle):
+                 serializer=persistqueue.serializers.pickle,
+                 autosave=False):
         """Create a persistent queue object on a given path.
 
         The argument path indicates a directory where enqueued data should be
@@ -75,6 +76,12 @@ class Queue(object):
         values with the same fp. The load method must deserialize and return
         one value from fp, and may be called multiple times with the same fp
         to read multiple values.
+
+        The autosave parameter controls when data removed from the queue is
+        persisted. By default (disabled), the change is only persisted when
+        task_done() is called. If autosave is enabled, data is persisted
+        immediately when get() is called. Adding data to the queue with put()
+        will always persist immediately regardless of this setting.
         """
         log.debug('Initializing File based Queue with path {}'.format(path))
         self.path = path
@@ -82,6 +89,7 @@ class Queue(object):
         self.tempdir = tempdir
         self.maxsize = maxsize
         self.serializer = serializer
+        self.autosave = autosave
         self._init(maxsize)
         if self.tempdir:
             if os.stat(self.path).st_dev != os.stat(self.tempdir).st_dev:
@@ -229,7 +237,11 @@ class Queue(object):
             self.tailf = self._openchunk(tnum)
         self.info['size'] -= 1
         self.info['tail'] = [tnum, tcnt, toffset]
-        self.update_info = True
+        if self.autosave:
+            self._saveinfo()
+            self.update_info = False
+        else:
+            self.update_info = True
         return data
 
     def task_done(self):
@@ -243,6 +255,8 @@ class Queue(object):
             self._task_done()
 
     def _task_done(self):
+        if self.autosave:
+            return
         if self.update_info:
             self._saveinfo()
             self.update_info = False
