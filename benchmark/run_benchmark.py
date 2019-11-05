@@ -53,6 +53,19 @@ class FileQueueBench(object):
         assert q.qsize() == 0
 
     @time_it
+    def benchmark_file_read_write_autosave(self):
+        """Writing and reading <BENCHMARK_COUNT> items(autosave)."""
+
+        self.path = tempfile.mkdtemp('b_file_10000')
+        q = Queue(self.path, autosave=True)
+        for i in range(BENCHMARK_COUNT):
+            q.put('bench%d' % i)
+
+        for i in range(BENCHMARK_COUNT):
+            q.get()
+        assert q.qsize() == 0
+
+    @time_it
     def benchmark_file_read_write_true(self):
         """Writing and reading <BENCHMARK_COUNT> items(many task_done)."""
 

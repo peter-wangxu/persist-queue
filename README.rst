@@ -233,6 +233,62 @@ Close the python console, and then we restart the queue from the same path,
     'b'
     >>> q.task_done()
 
+Example usage with an auto-saving file based queue
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+By default, items added to the queue are persisted during the ``put()`` call,
+and items removed from a queue are only persisted when ``task_done()`` is
+called.
+
+.. code-block:: python
+
+    >>> from persistqueue import Queue
+    >>> q = Queue("mypath")
+    >>> q.put('a')
+    >>> q.put('b')
+    >>> q.get()
+    'a'
+    >>> q.get()
+    'b'
+
+After exiting and restarting the queue from the same path, we see the items
+remain in the queue, because ``task_done()`` wasn't called before.
+
+.. code-block:: python
+
+    >>> from persistqueue import Queue
+    >>> q = Queue('mypath')
+    >>> q.get()
+    'a'
+    >>> q.get()
+    'b'
+
+This can be advantageous. For example, if your program crashes before finishing
+processing an item, it will remain in the queue after restarting. You can also
+spread out the ``task_done()`` calls for performance reasons to avoid lots of
+individual writes.
+
+Using ``autosave=True`` on a file based queue will automatically save on every
+call to ``get()``. Calling ``task_done()`` is not necessary, but may still be
+used to ``join()`` against the queue.
+
+.. code-block:: python
+
+    >>> from persistqueue import Queue
+    >>> q = Queue("mypath", autosave=True)
+    >>> q.put('a')
+    >>> q.put('b')
+    >>> q.get()
+    'a'
+
+After exiting and restarting the queue from the same path, only the second item
+remains:
+
+.. code-block:: python
+
+    >>> from persistqueue import Queue
+    >>> q = Queue('mypath', autosave=True)
+    >>> q.get()
+    'b'
 
 
 Example usage with a SQLite3 based dict
