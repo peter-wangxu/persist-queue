@@ -209,6 +209,7 @@ Note:
 1. The SQLiteAckQueue always uses "auto_commit=True".
 2. The Queue could be set in non-block style, e.g. "SQLiteAckQueue.get(block=False, timeout=5)".
 3. ``UniqueAckQ`` only allows for unique items
+
 Example usage with a file based queue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
