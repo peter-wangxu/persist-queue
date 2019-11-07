@@ -236,6 +236,9 @@ Close the python console, and then we restart the queue from the same path,
 
 Example usage with an auto-saving file based queue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Available since: v0.5.0*
+
 By default, items added to the queue are persisted during the ``put()`` call,
 and items removed from a queue are only persisted when ``task_done()`` is
 called.
@@ -381,8 +384,8 @@ Due to the limitation of file queue described in issue `#89 <https://github.com/
 
 Serialization via msgpack/json
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- v0.4.1: Currently only available for file based Queue**
-- v0.4.2: Also available for SQLite3 based Queues**
+- v0.4.1: Currently only available for file based Queue
+- v0.4.2: Also available for SQLite3 based Queues
 
 .. code-block:: python
 
