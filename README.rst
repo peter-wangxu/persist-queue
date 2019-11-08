@@ -184,7 +184,7 @@ This queue does not allow duplicate items.
    >>>
 
 Example usage of SQLite3 based ``SQLiteAckQueue``/``UniqueAckQ``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The core functions:
 
 - ``get``: get from queue and mark item as unack
@@ -402,7 +402,7 @@ Explicit resource reclaim
 
 For some reasons, an application may require explicit reclamation for file
 handles or sql connections before end of execution. In these cases, user can
- simply call:
+simply call:
 .. code-block:: python
 
     q = Queue() # or q = persistqueue.SQLiteQueue('mypath', auto_commit=True)
