@@ -74,7 +74,8 @@ from source code
 Benchmark
 ---------
 
-Here are the results for writing/reading **1000** items to the disk comparing the sqlite3 and file queue.
+Here are the time spent(in seconds) for writing/reading **1000** items to the
+disk comparing the sqlite3 and file queue.
 
 - Windows
     - OS: Windows 10
@@ -121,7 +122,8 @@ atomic renaming support(3-4X faster)
 
 **note**
 
-- The value above is seconds for reading/writing *1000* items, the less the better.
+- The value above is in seconds for reading/writing *1000* items, the less
+  the better
 - Above result was got from:
 
 .. code-block:: console
