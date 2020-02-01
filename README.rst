@@ -480,6 +480,12 @@ Contribution
 Simply fork this repo and send PR for your code change(also tests to cover your change), remember to give a title and description of your PR. I am willing to
 enhance this project with you :).
 
+Slack channels
+^^^^^^^^^^^^^^
+
+Join `persist-queue <https://join.slack
+.com/t/persist-queue/shared_invite
+/enQtOTM0MDgzNTQ0MDg3LTNmN2IzYjQ1MDc0MDYzMjI4OGJmNmVkNWE3ZDBjYzg5MDc0OWUzZDJkYTkwODdkZmYwODdjNjUzMTk3MWExNDE>`_ channel
 
 License
 -------
