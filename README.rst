@@ -31,6 +31,14 @@ and `Pickling Class Instances(Python3) <https://docs.python.org/3/library/pickle
 This project is based on the achievements of `python-pqueue <https://github.com/balena/python-pqueue>`_
 and `queuelib <https://github.com/scrapy/queuelib>`_
 
+Slack channels
+^^^^^^^^^^^^^^
+
+Join `persist-queue <https://join.slack
+.com/t/persist-queue/shared_invite
+/enQtOTM0MDgzNTQ0MDg3LTNmN2IzYjQ1MDc0MDYzMjI4OGJmNmVkNWE3ZDBjYzg5MDc0OWUzZDJkYTkwODdkZmYwODdjNjUzMTk3MWExNDE>`_ channel
+
+
 Requirements
 ------------
 * Python 2.7 or Python 3.x.
@@ -193,6 +201,12 @@ The core functions:
 - ``ack``: mark item as acked
 - ``nack``: there might be something wrong with current consumer, so mark item as ready and new consumer will get it
 - ``ack_failed``: there might be something wrong during process, so just mark item as failed.
+- ``clear_acked_data``: perform a sql delete agaist sqlite, it remove the
+latest 1000 items whose status is ``AckStatus.acked`` (note: this does not
+shrink the file size on disk)
+- ``shrink_disk_usage`` perform a ``VACUUM`` against the sqlite, and rebuild
+ the database file, this usually takes long time and frees a lot of disk space
+ after ``clear_acked_data``
 
 .. code-block:: python
 
@@ -480,12 +494,6 @@ Contribution
 Simply fork this repo and send PR for your code change(also tests to cover your change), remember to give a title and description of your PR. I am willing to
 enhance this project with you :).
 
-Slack channels
-^^^^^^^^^^^^^^
-
-Join `persist-queue <https://join.slack
-.com/t/persist-queue/shared_invite
-/enQtOTM0MDgzNTQ0MDg3LTNmN2IzYjQ1MDc0MDYzMjI4OGJmNmVkNWE3ZDBjYzg5MDc0OWUzZDJkYTkwODdkZmYwODdjNjUzMTk3MWExNDE>`_ channel
 
 License
 -------
