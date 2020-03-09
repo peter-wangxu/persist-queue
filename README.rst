@@ -201,12 +201,8 @@ The core functions:
 - ``ack``: mark item as acked
 - ``nack``: there might be something wrong with current consumer, so mark item as ready and new consumer will get it
 - ``ack_failed``: there might be something wrong during process, so just mark item as failed.
-- ``clear_acked_data``: perform a sql delete agaist sqlite, it remove the
-latest 1000 items whose status is ``AckStatus.acked`` (note: this does not
-shrink the file size on disk)
-- ``shrink_disk_usage`` perform a ``VACUUM`` against the sqlite, and rebuild
- the database file, this usually takes long time and frees a lot of disk space
- after ``clear_acked_data``
+- ``clear_acked_data``: perform a sql delete agaist sqlite, it remove the latest 1000 items whose status is ``AckStatus.acked`` (note: this does not shrink the file size on disk)
+- ``shrink_disk_usage`` perform a ``VACUUM`` against the sqlite, and rebuild the database file, this usually takes long time and frees a lot of disk space after ``clear_acked_data``
 
 .. code-block:: python
 
@@ -221,7 +217,8 @@ shrink the file size on disk)
 
 
 
-Note: 
+Note:
+
 1. The SQLiteAckQueue always uses "auto_commit=True".
 2. The Queue could be set in non-block style, e.g. "SQLiteAckQueue.get(block=False, timeout=5)".
 3. ``UniqueAckQ`` only allows for unique items
