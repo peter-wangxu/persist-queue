@@ -38,18 +38,18 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                    '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
                    'data BLOB, timestamp FLOAT, status INTEGER)')
     # SQL to insert a record
-    _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, status)'\
-        ' VALUES (?, ?, %s)' % AckStatus.inited
+    _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, status)' \
+                  ' VALUES (?, ?, %s)' % AckStatus.inited
     # SQL to select a record
     _SQL_SELECT = ('SELECT {key_column}, data, status FROM {table_name} '
                    'WHERE status < %s '
                    'ORDER BY {key_column} ASC LIMIT 1' % AckStatus.unack)
-    _SQL_MARK_ACK_UPDATE = 'UPDATE {table_name} SET status = ?'\
-        ' WHERE {key_column} = ?'
-    _SQL_SELECT_WHERE = 'SELECT {key_column}, data FROM {table_name}'\
-        ' WHERE status < %s AND' \
-        ' {column} {op} ? ORDER BY {key_column} ASC'\
-        ' LIMIT 1 ' % AckStatus.unack
+    _SQL_MARK_ACK_UPDATE = 'UPDATE {table_name} SET status = ?' \
+                           ' WHERE {key_column} = ?'
+    _SQL_SELECT_WHERE = 'SELECT {key_column}, data FROM {table_name}' \
+                        ' WHERE status < %s AND' \
+                        ' {column} {op} ? ORDER BY {key_column} ASC' \
+                        ' LIMIT 1 ' % AckStatus.unack
 
     def __init__(self, path, auto_resume=True, **kwargs):
         super(SQLiteAckQueue, self).__init__(path, **kwargs)
@@ -65,9 +65,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         unack_count = self.unack_count()
         if unack_count:
             log.warning("resume %d unack tasks", unack_count)
-        sql = 'UPDATE {} set status = ?'\
-            ' WHERE status = ?'.format(self._table_name)
-        return sql, (AckStatus.ready, AckStatus.unack, )
+        sql = 'UPDATE {} set status = ?' \
+              ' WHERE status = ?'.format(self._table_name)
+        return sql, (AckStatus.ready, AckStatus.unack,)
 
     def put(self, item):
         obj = self._serializer.dumps(item)
@@ -82,17 +82,17 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         self.total = self._count()
 
     def _count(self):
-        sql = 'SELECT COUNT({}) FROM {}'\
-            ' WHERE status < ?'.format(self._key_column,
-                                       self._table_name)
+        sql = 'SELECT COUNT({}) FROM {}' \
+              ' WHERE status < ?'.format(self._key_column,
+                                         self._table_name)
         row = self._getter.execute(sql, (AckStatus.unack,)).fetchone()
         return row[0] if row else 0
 
     def _ack_count_via_status(self, status):
-        sql = 'SELECT COUNT({}) FROM {}'\
-            ' WHERE status = ?'.format(self._key_column,
-                                       self._table_name)
-        row = self._getter.execute(sql, (status, )).fetchone()
+        sql = 'SELECT COUNT({}) FROM {}' \
+              ' WHERE status = ?'.format(self._key_column,
+                                         self._table_name)
+        row = self._getter.execute(sql, (status,)).fetchone()
         return row[0] if row else 0
 
     def unack_count(self):
@@ -109,7 +109,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     @sqlbase.with_conditional_transaction
     def _mark_ack_status(self, key, status):
-        return self._sql_mark_ack_status, (status, key, )
+        return self._sql_mark_ack_status, (status, key,)
 
     @sqlbase.with_conditional_transaction
     def clear_acked_data(self):
@@ -122,6 +122,11 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                         key_column=self._key_column,
                         max_acked_length=self._MAX_ACKED_LENGTH)
         return sql, AckStatus.acked
+
+    @sqlbase.with_conditional_transaction
+    def shrink_disk_usage(self):
+        sql = """VACUUM"""
+        return sql, ()
 
     @property
     def _sql_mark_ack_status(self):

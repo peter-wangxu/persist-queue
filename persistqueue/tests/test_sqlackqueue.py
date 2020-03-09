@@ -212,6 +212,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(q.acked_count(), 100)
         q.clear_acked_data()
         self.assertEqual(q.acked_count(), 10)
+        q.shrink_disk_usage()
 
     def test_ack_unknown_item(self):
         q = SQLiteAckQueue(path=self.path)
