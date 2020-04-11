@@ -3,7 +3,7 @@ jobs:
   py27:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:2.7.15
+      - image: circleci/python:2.7.17
     environment:
       - TOXENV: py27
     steps: &common_steps
@@ -34,7 +34,7 @@ jobs:
   py34:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:3.4.7
+      - image: circleci/python:3.4.10
     environment:
       - TOXENV: py34
     steps: *common_steps
@@ -42,7 +42,7 @@ jobs:
   py35:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:3.5.5
+      - image: circleci/python:3.5.9
     environment:
       - TOXENV: py35
 
@@ -51,7 +51,7 @@ jobs:
   py36:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:3.6.5
+      - image: circleci/python:3.6.10
     environment:
       - TOXENV: py36
     steps: *common_steps
@@ -59,16 +59,23 @@ jobs:
   py37:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:3.7.0
+      - image: circleci/python:3.7.7
     environment:
       - TOXENV: py37
     steps: *common_steps
 
+  py38:
+    docker:
+      # Primary container image where all steps run.
+      - image: circleci/python:3.8.2
+    environment:
+      - TOXENV: py38
+    steps: *common_steps
 
   pep8:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:3.5.4
+      - image: circleci/python:3.5.9
     environment:
       - TOXENV: pep8
     steps: *common_steps
@@ -77,7 +84,7 @@ jobs:
   cover:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:3.5.4
+      - image: circleci/python:3.5.9
     environment:
       - TOXENV: cover
     steps: *common_steps
@@ -92,4 +99,5 @@ workflows:
       - py35
       - py36
       - py37
+      - py38
       - cover

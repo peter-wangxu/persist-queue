@@ -32,6 +32,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     _TABLE_NAME = 'ack_queue'
     _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
+    # max reserved acked item after clear_acked_data
     _MAX_ACKED_LENGTH = 1000
     # SQL to create a table
     _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
@@ -114,10 +115,10 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     @sqlbase.with_conditional_transaction
     def clear_acked_data(self):
         sql = """DELETE FROM {table_name}
-            WHERE {key_column} IN (
+            WHERE {key_column} <= (
                 SELECT _id FROM {table_name} WHERE status = ?
                 ORDER BY {key_column} DESC
-                LIMIT 1000 OFFSET {max_acked_length}
+                LIMIT 1 OFFSET {max_acked_length}
             )""".format(table_name=self._table_name,
                         key_column=self._key_column,
                         max_acked_length=self._MAX_ACKED_LENGTH)
