@@ -148,10 +148,11 @@ class SQLiteBase(object):
     def _select(self, *args, **kwargs):
         op = kwargs.get('op', None)
         column = kwargs.get('column', None)
+        rowid = kwargs.get('start') if kwargs.get('start', None) else 0
         if op and column:
             return self._getter.execute(
-                self._sql_select_where(op, column), args).fetchone()
-        return self._getter.execute(self._sql_select, args).fetchone()
+                self._sql_select_where(rowid, op, column), args).fetchone()
+        return self._getter.execute(self._sql_select(rowid), args).fetchone()
 
     def _count(self):
         sql = 'SELECT COUNT({}) FROM {}'.format(self._key_column,
@@ -186,14 +187,15 @@ class SQLiteBase(object):
         return self._SQL_UPDATE.format(table_name=self._table_name,
                                        key_column=self._key_column)
 
-    @property
-    def _sql_select(self):
+    def _sql_select(self, rowid):
         return self._SQL_SELECT.format(table_name=self._table_name,
-                                       key_column=self._key_column)
+                                       key_column=self._key_column,
+                                       rowid=rowid)
 
-    def _sql_select_where(self, op, column):
+    def _sql_select_where(self, rowid, op, column):
         return self._SQL_SELECT_WHERE.format(table_name=self._table_name,
                                              key_column=self._key_column,
+                                             rowid=rowid,
                                              op=op,
                                              column=column)
 
