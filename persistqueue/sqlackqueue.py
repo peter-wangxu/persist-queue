@@ -222,7 +222,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return self.total
 
     def qsize(self):
-        return self.size
+        return max(0, self.size + len(self._unack_cache))
 
     def empty(self):
         return self.size == 0
