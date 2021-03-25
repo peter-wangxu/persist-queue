@@ -40,12 +40,12 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, status)' \
                   ' VALUES (?, ?, %s)' % AckStatus.inited
     # SQL to select a record
-    _SQL_SELECT = ('SELECT {key_column}, data, status FROM {table_name} '
+    _SQL_SELECT = ('SELECT {key_column}, data, timestamp, status FROM {table_name} '
                    'WHERE _id > {rowid} AND status < %s '
                    'ORDER BY {key_column} ASC LIMIT 1' % AckStatus.unack)
     _SQL_MARK_ACK_UPDATE = 'UPDATE {table_name} SET status = ?' \
                            ' WHERE {key_column} = ?'
-    _SQL_SELECT_WHERE = 'SELECT {key_column}, data FROM {table_name}' \
+    _SQL_SELECT_WHERE = 'SELECT {key_column}, data, timestamp FROM {table_name}' \
                         ' WHERE _id > {rowid} AND status < %s AND' \
                         ' {column} {op} ? ORDER BY {key_column} ASC' \
                         ' LIMIT 1 ' % AckStatus.unack
@@ -143,7 +143,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return self._SQL_MARK_ACK_UPDATE.format(table_name=self._table_name,
                                                 key_column=self._key_column)
 
-    def _pop(self, start=None):
+    def _pop(self, start=None, raw=False):
         with self.action_lock:
             row = self._select(start=start)
             # Perhaps a sqlite3 bug, sometimes (None, None) is returned
@@ -154,7 +154,10 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                 item = self._serializer.loads(serialized_data)
                 self._unack_cache[row[0]] = item
                 self.total -= 1
-                return item
+                if raw:
+                    return {'pqid': row[0], 'data': item, 'tiemstamp': row[2]}
+                else:
+                    return item
             return None
 
     def _find_item_id(self, item):
@@ -166,7 +169,10 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     def ack(self, item):
         with self.action_lock:
-            _id = self._find_item_id(item)
+            if isinstance(item, dict) and "pqid" in item:
+                _id = item.get("pqid")
+            else:
+                _id = self._find_item_id(item)
             if _id is None:
                 return
             self._mark_ack_status(_id, AckStatus.acked)
@@ -175,7 +181,10 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     def ack_failed(self, item):
         with self.action_lock:
-            _id = self._find_item_id(item)
+            if isinstance(item, dict) and "pqid" in item:
+                _id = item.get("pqid")
+            else:
+                _id = self._find_item_id(item)
             if _id is None:
                 return
             self._mark_ack_status(_id, AckStatus.ack_failed)
@@ -184,7 +193,10 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     def nack(self, item):
         with self.action_lock:
-            _id = self._find_item_id(item)
+            if isinstance(item, dict) and "pqid" in item:
+                _id = item.get("pqid")
+            else:
+                _id = self._find_item_id(item)
             if _id is None:
                 return
             self._mark_ack_status(_id, AckStatus.ready)
@@ -192,24 +204,24 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             self.total += 1
         return _id
 
-    def get(self, block=True, timeout=None, start=None):
+    def get(self, block=True, timeout=None, start=None, raw=False):
         if not block:
-            serialized = self._pop(start)
+            serialized = self._pop(start, raw)
             if serialized is None:
                 raise Empty
         elif timeout is None:
             # block until a put event.
-            serialized = self._pop(start)
+            serialized = self._pop(start, raw)
             while serialized is None:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
-                serialized = self._pop(start)
+                serialized = self._pop(start, raw)
         elif timeout < 0:
             raise ValueError("'timeout' must be a non-negative number")
         else:
             # block until the timeout reached
             endtime = _time.time() + timeout
-            serialized = self._pop(start)
+            serialized = self._pop(start, raw)
             while serialized is None:
                 self.put_event.clear()
                 remaining = endtime - _time.time()
@@ -217,7 +229,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                     raise Empty
                 self.put_event.wait(
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
-                serialized = self._pop(start)
+                serialized = self._pop(start, raw)
         item = serialized
         return item
 

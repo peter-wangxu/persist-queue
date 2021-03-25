@@ -30,14 +30,13 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     # SQL to insert a record
     _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp) VALUES (?, ?)'
     # SQL to select a record
-    _SQL_SELECT = ('SELECT {key_column}, data FROM {table_name} WHERE'
+    _SQL_SELECT = ('SELECT {key_column}, data, timestamp FROM {table_name} WHERE'
                    ' _id > {rowid} ORDER BY {key_column} ASC LIMIT 1')
-    _SQL_SELECT_WHERE = 'SELECT {key_column}, data FROM {table_name} WHERE' \
+    _SQL_SELECT_WHERE = 'SELECT {key_column}, data, timestamp FROM {table_name} WHERE' \
                         ' _id > {rowid} AND {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
 
     def put(self, item):
         obj = self._serializer.dumps(item)
-        self._insert_into(obj, _time.time())
         _id = self._insert_into(obj, _time.time())
         self.total += 1
         self.put_event.set()
@@ -56,43 +55,49 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                 self.cursor = 0
         self.total = self._count()
 
-    def _pop(self):
+    def _pop(self, start=None, raw=False):
         with self.action_lock:
             if self.auto_commit:
-                row = self._select()
+                row = self._select(start=start)
                 # Perhaps a sqlite3 bug, sometimes (None, None) is returned
                 # by select, below can avoid these invalid records.
                 if row and row[0] is not None:
                     self._delete(row[0])
                     self.total -= 1
-                    return row[1]  # serialized data
+                    if raw:
+                        return {'id': row[0], 'data': row[1], 'tiemstamp': row[2]}
+                    else:
+                        return row[1] # serialized data
             else:
                 row = self._select(
-                    self.cursor, op=">", column=self._KEY_COLUMN)
+                    self.cursor, op=">", column=self._KEY_COLUMN, start=start)
                 if row and row[0] is not None:
                     self.cursor = row[0]
                     self.total -= 1
-                    return row[1]
+                    if raw:
+                        return {'id': row[0], 'data': row[1], 'tiemstamp': row[2]}
+                    else:
+                        return row[1]
             return None
 
-    def get(self, block=True, timeout=None):
+    def get(self, block=True, timeout=None, start=None, raw=False):
         if not block:
-            serialized = self._pop()
+            serialized = self._pop(start, raw)
             if not serialized:
                 raise Empty
         elif timeout is None:
             # block until a put event.
-            serialized = self._pop()
+            serialized = self._pop(start, raw)
             while serialized is None:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
-                serialized = self._pop()
+                serialized = self._pop(start, raw)
         elif timeout < 0:
             raise ValueError("'timeout' must be a non-negative number")
         else:
             # block until the timeout reached
             endtime = _time.time() + timeout
-            serialized = self._pop()
+            serialized = self._pop(start, raw)
             while not serialized:
                 self.put_event.clear()
                 remaining = endtime - _time.time()
@@ -100,7 +105,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                     raise Empty
                 self.put_event.wait(
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
-                serialized = self._pop()
+                serialized = self._pop(start, raw)
         item = self._serializer.loads(serialized)
         return item
 
