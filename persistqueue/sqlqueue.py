@@ -38,8 +38,10 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     def put(self, item):
         obj = self._serializer.dumps(item)
         self._insert_into(obj, _time.time())
+        _id = self._insert_into(obj, _time.time())
         self.total += 1
         self.put_event.set()
+        return _id
 
     def _init(self):
         super(SQLiteQueue, self)._init()
@@ -143,9 +145,10 @@ class UniqueQ(SQLiteQueue):
     def put(self, item):
         obj = self._serializer.dumps(item, sort_keys=True)
         try:
-            self._insert_into(obj, _time.time())
+            _id = self._insert_into(obj, _time.time())
         except sqlite3.IntegrityError:
             pass
         else:
             self.total += 1
             self.put_event.set()
+        return _id

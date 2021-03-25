@@ -15,7 +15,9 @@ def with_conditional_transaction(func):
         with obj.tran_lock:
             with obj._putter as tran:
                 stat, param = func(obj, *args, **kwargs)
-                tran.execute(stat, param)
+                cur = tran.cursor()
+                cur.execute(stat, param)
+                return cur.lastrowid
 
     return _execute
 
