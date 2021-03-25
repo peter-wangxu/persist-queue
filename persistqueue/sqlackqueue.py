@@ -32,7 +32,6 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     _TABLE_NAME = 'ack_queue'
     _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
-    _MAX_ACKED_LENGTH = 1000
     # SQL to create a table
     _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
                    '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
@@ -112,15 +111,25 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return self._sql_mark_ack_status, (status, key,)
 
     @sqlbase.with_conditional_transaction
-    def clear_acked_data(self):
+    def clear_acked_data(self, max_delete=1000, keep_latest=1000, clear_ack_failed=False):
+        acked_clear_all = ''
+        acked_to_delete = ''
+        acked_to_keep = ''
+        if clear_ack_failed:
+            acked_clear_all = 'OR status = %s' % AckStatus.ack_failed
+        if max_delete and max_delete > 0:
+            acked_to_delete = 'LIMIT %d' % max_delete
+        if keep_latest and keep_latest > 0:
+            acked_to_keep = 'OFFSET %d' % keep_latest
         sql = """DELETE FROM {table_name}
             WHERE {key_column} IN (
-                SELECT _id FROM {table_name} WHERE status = ?
-                ORDER BY {key_column} DESC
-                LIMIT 1000 OFFSET {max_acked_length}
+                SELECT _id FROM {table_name} WHERE status = ? {clear_ack_failed}
+                ORDER BY {key_column} DESC {acked_to_delete} {acked_to_keep}
             )""".format(table_name=self._table_name,
                         key_column=self._key_column,
-                        max_acked_length=self._MAX_ACKED_LENGTH)
+                        acked_to_delete=acked_to_delete,
+                        acked_to_keep=acked_to_keep,
+                        clear_ack_failed=acked_clear_all)
         return sql, AckStatus.acked
 
     @sqlbase.with_conditional_transaction
