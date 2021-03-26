@@ -31,9 +31,9 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp) VALUES (?, ?)'
     # SQL to select a record
     _SQL_SELECT = ('SELECT {key_column}, data, timestamp FROM {table_name} WHERE'
-                   ' _id > {rowid} ORDER BY {key_column} ASC LIMIT 1')
+                   ' {key_column} > {rowid} ORDER BY {key_column} ASC LIMIT 1')
     _SQL_SELECT_WHERE = 'SELECT {key_column}, data, timestamp FROM {table_name} WHERE' \
-                        ' _id > {rowid} AND {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
+                        ' {key_column} > {rowid} AND {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
 
     def put(self, item):
         obj = self._serializer.dumps(item)

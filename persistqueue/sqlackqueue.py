@@ -41,12 +41,12 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                   ' VALUES (?, ?, %s)' % AckStatus.inited
     # SQL to select a record
     _SQL_SELECT = ('SELECT {key_column}, data, timestamp, status FROM {table_name} '
-                   'WHERE _id > {rowid} AND status < %s '
+                   'WHERE {key_column} > {rowid} AND status < %s '
                    'ORDER BY {key_column} ASC LIMIT 1' % AckStatus.unack)
     _SQL_MARK_ACK_UPDATE = 'UPDATE {table_name} SET status = ?' \
                            ' WHERE {key_column} = ?'
     _SQL_SELECT_WHERE = 'SELECT {key_column}, data, timestamp FROM {table_name}' \
-                        ' WHERE _id > {rowid} AND status < %s AND' \
+                        ' WHERE {key_column} > {rowid} AND status < %s AND' \
                         ' {column} {op} ? ORDER BY {key_column} ASC' \
                         ' LIMIT 1 ' % AckStatus.unack
 
