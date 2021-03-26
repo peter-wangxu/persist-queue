@@ -150,7 +150,7 @@ class SQLiteBase(object):
     def _select(self, *args, **kwargs):
         op = kwargs.get('op', None)
         column = kwargs.get('column', None)
-        in_order = kwargs.get('in_order', None)
+        in_order = kwargs.get('in_order', False)
         rowid = kwargs.get('rowid') if kwargs.get('rowid', None) else 0
         if not in_order and rowid > 0:
             # Get the record by the id

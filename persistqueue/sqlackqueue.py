@@ -150,7 +150,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return self._SQL_MARK_ACK_UPDATE.format(table_name=self._table_name,
                                                 key_column=self._key_column)
 
-    def _pop(self, in_order=None, raw=False, rowid=None):
+    def _pop(self, rowid=None, in_order=False, raw=False):
         with self.action_lock:
             row = self._select(in_order=in_order, rowid=rowid)
             # Perhaps a sqlite3 bug, sometimes (None, None) is returned
@@ -211,7 +211,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             self.total += 1
         return _id
 
-    def get(self, block=True, timeout=None, item=None, in_order=None, raw=False):
+    def get(self, block=True, timeout=None, item=None, in_order=False, raw=False):
         if isinstance(item, dict) and "pqid" in item:
             rowid = item.get("pqid")
         elif isinstance(item, int):
