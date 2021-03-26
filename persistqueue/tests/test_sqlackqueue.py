@@ -201,7 +201,6 @@ class SQLite3AckQueueTest(unittest.TestCase):
 
     def test_ack_and_clear(self):
         q = SQLiteAckQueue(path=self.path)
-        q._MAX_ACKED_LENGTH = 10
         ret_list = []
         for _ in range(100):
             q.put("val%s" % _)
@@ -210,7 +209,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         for ret in ret_list:
             q.ack(ret)
         self.assertEqual(q.acked_count(), 100)
-        q.clear_acked_data()
+        q.clear_acked_data(keep_latest=10)
         self.assertEqual(q.acked_count(), 10)
         q.shrink_disk_usage()
 
@@ -289,6 +288,55 @@ class SQLite3AckQueueTest(unittest.TestCase):
         q.put(0)
         d = q.get(block=False)
         self.assertIsNotNone(d)
+
+    def test_get_id(self):
+        q = SQLiteAckQueue(path=self.path)
+        q.put("val1")
+        val2 = q.put("val2")
+        q.put("val3")
+        item = q.get(item=val2)
+        # item id should be 2
+        self.assertEqual(val2, 2)
+         # item should get val2
+        self.assertEqual(item, 'val2')
+
+    def test_get_in_order(self):
+        q = SQLiteAckQueue(path=self.path)
+        val1 = q.put("val1")
+        q.put("val2")
+        q.put("val3")
+        item = q.get(item=val1, in_order=True)
+        # item id should be 1
+        self.assertEqual(val1, 1)
+         # item should get val2
+        self.assertEqual(item, 'val2')
+
+    def test_get_raw(self):
+        q = SQLiteAckQueue(path=self.path)
+        q.put("val1")
+        item = q.get(raw=True)
+        # item should get val2
+        self.assertEqual(True, "pqid" in item)
+        self.assertEqual(item.get("data"), 'val1')
+
+    def test_nack_raw(self):
+        q = SQLiteAckQueue(path=self.path)
+        q.put("val1")
+        item = q.get(raw=True)
+        # nack a raw return
+        q.nack(item)
+        # size should be 1 after nack
+        self.assertEqual(q.qsize(), 1)
+
+    def test_ack_ractive_size(self):
+        q = SQLiteAckQueue(path=self.path)
+        q.put("val1")
+        item = q.get(raw=True)
+        # active_size should be 1 as it hasn't been acked
+        self.assertEqual(q.active_size(), 1)
+        q.ack(item)
+        # active_size should be 0 after ack
+        self.assertEqual(q.active_size(), 0)
 
 
 class SQLite3QueueInMemory(SQLite3AckQueueTest):

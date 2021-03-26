@@ -32,6 +32,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     _TABLE_NAME = 'ack_queue'
     _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
+    _MAX_ACKED_LENGTH = 1000 # depreciated
     # SQL to create a table
     _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
                    '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
@@ -40,6 +41,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, status)' \
                   ' VALUES (?, ?, %s)' % AckStatus.inited
     # SQL to select a record
+    _SQL_SELECT_ID = ('SELECT {key_column}, data, timestamp, status FROM {table_name} WHERE'
+                   ' {key_column} = {rowid}')
     _SQL_SELECT = ('SELECT {key_column}, data, timestamp, status FROM {table_name} '
                    'WHERE {key_column} > {rowid} AND status < %s '
                    'ORDER BY {key_column} ASC LIMIT 1' % AckStatus.unack)
@@ -116,6 +119,10 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         acked_clear_all = ''
         acked_to_delete = ''
         acked_to_keep = ''
+        if self._MAX_ACKED_LENGTH != 1000 and not max_delete:
+            # Added for backward compatibility for those that set the _MAX_ACKED_LENGTH
+            print("_MAX_ACKED_LENGTH has been depreciated.  Use clear_acked_data(keep_latest=1000, max_delete=1000)")
+            max_delete = self._MAX_ACKED_LENGTH
         if clear_ack_failed:
             acked_clear_all = 'OR status = %s' % AckStatus.ack_failed
         if max_delete and max_delete > 0:
@@ -143,9 +150,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return self._SQL_MARK_ACK_UPDATE.format(table_name=self._table_name,
                                                 key_column=self._key_column)
 
-    def _pop(self, start=None, raw=False):
+    def _pop(self, in_order=None, raw=False, rowid=None):
         with self.action_lock:
-            row = self._select(start=start)
+            row = self._select(in_order=in_order, rowid=rowid)
             # Perhaps a sqlite3 bug, sometimes (None, None) is returned
             # by select, below can avoid these invalid records.
             if row and row[0] is not None:
@@ -204,24 +211,34 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             self.total += 1
         return _id
 
-    def get(self, block=True, timeout=None, start=None, raw=False):
+    def get(self, block=True, timeout=None, item=None, in_order=None, raw=False):
+        if isinstance(item, dict) and "pqid" in item:
+            rowid = item.get("pqid")
+        elif isinstance(item, int):
+            rowid = item
+        else:
+            if in_order:
+                raise ValueError("'in_order' requires an item.")
+            rowid = None
+        if in_order and not isinstance(in_order, bool):
+            raise ValueError("'in_order' must be a boolean (True/False)")
         if not block:
-            serialized = self._pop(start, raw)
+            serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
             if serialized is None:
                 raise Empty
         elif timeout is None:
             # block until a put event.
-            serialized = self._pop(start, raw)
+            serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
             while serialized is None:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
-                serialized = self._pop(start, raw)
+                serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
         elif timeout < 0:
             raise ValueError("'timeout' must be a non-negative number")
         else:
             # block until the timeout reached
             endtime = _time.time() + timeout
-            serialized = self._pop(start, raw)
+            serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
             while serialized is None:
                 self.put_event.clear()
                 remaining = endtime - _time.time()
@@ -229,7 +246,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                     raise Empty
                 self.put_event.wait(
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
-                serialized = self._pop(start, raw)
+                serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
         return serialized
 
     def task_done(self):
@@ -250,6 +267,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return self.total
 
     def qsize(self):
+        return max(0, self.size)
+
+    def active_size(self):
         return max(0, self.size + len(self._unack_cache))
 
     def empty(self):
@@ -282,6 +302,7 @@ class UniqueAckQ(SQLiteAckQueue):
 
     def put(self, item):
         obj = self._serializer.dumps(item, sort_keys=True)
+        _id = None
         try:
             _id = self._insert_into(obj, _time.time())
         except sqlite3.IntegrityError:
@@ -289,4 +310,4 @@ class UniqueAckQ(SQLiteAckQueue):
         else:
             self.total += 1
             self.put_event.set()
-            return _id
+        return _id

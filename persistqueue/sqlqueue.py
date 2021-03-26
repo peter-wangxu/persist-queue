@@ -30,10 +30,12 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     # SQL to insert a record
     _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp) VALUES (?, ?)'
     # SQL to select a record
-    _SQL_SELECT = ('SELECT {key_column}, data, timestamp FROM {table_name} WHERE'
-                   ' {key_column} > {rowid} ORDER BY {key_column} ASC LIMIT 1')
+    _SQL_SELECT_ID = ('SELECT {key_column}, data, timestamp FROM {table_name} WHERE'
+                   ' {key_column} = {rowid}')
+    _SQL_SELECT = ('SELECT {key_column}, data, timestamp FROM {table_name} '
+                   'ORDER BY {key_column} ASC LIMIT 1')
     _SQL_SELECT_WHERE = 'SELECT {key_column}, data, timestamp FROM {table_name} WHERE' \
-                        ' {key_column} > {rowid} AND {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
+                        ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
 
     def put(self, item):
         obj = self._serializer.dumps(item)
@@ -55,10 +57,10 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                 self.cursor = 0
         self.total = self._count()
 
-    def _pop(self, start=None, raw=False):
+    def _pop(self, rowid=None, raw=False):
         with self.action_lock:
             if self.auto_commit:
-                row = self._select(start=start)
+                row = self._select(rowid=rowid)
                 # Perhaps a sqlite3 bug, sometimes (None, None) is returned
                 # by select, below can avoid these invalid records.
                 if row and row[0] is not None:
@@ -66,48 +68,54 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                     self.total -= 1
                     item = self._serializer.loads(row[1])
                     if raw:
-                        return {'id': row[0], 'data': item , 'tiemstamp': row[2]}
+                        return {'pqid': row[0], 'data': item , 'tiemstamp': row[2]}
                     else:
                         return item
             else:
                 row = self._select(
-                    self.cursor, op=">", column=self._KEY_COLUMN, start=start)
+                    self.cursor, op=">", column=self._KEY_COLUMN, rowid=rowid)
                 if row and row[0] is not None:
                     self.cursor = row[0]
                     self.total -= 1
                     item = self._serializer.loads(row[1])
                     if raw:
-                        return {'id': row[0], 'data': item, 'tiemstamp': row[2]}
+                        return {'pqid': row[0], 'data': item, 'tiemstamp': row[2]}
                     else:
                         return item
             return None
 
-    def get(self, block=True, timeout=None, start=None, raw=False):
+    def get(self, block=True, timeout=None, item=None, raw=False):
+        if isinstance(item, dict) and "pqid" in item:
+            rowid = item.get("pqid")
+        elif isinstance(item, int):
+            rowid = item
+        else:
+            rowid = None
         if not block:
-            serialized = self._pop(start, raw)
-            if not serialized:
+            serialized = self._pop(raw=raw, rowid=rowid)
+            if serialized is None:
                 raise Empty
         elif timeout is None:
             # block until a put event.
-            serialized = self._pop(start, raw)
+            serialized = self._pop(raw=raw, rowid=rowid)
             while serialized is None:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
-                serialized = self._pop(start, raw)
+                serialized = self._pop(raw=raw, rowid=rowid)
         elif timeout < 0:
             raise ValueError("'timeout' must be a non-negative number")
         else:
             # block until the timeout reached
             endtime = _time.time() + timeout
-            serialized = self._pop(start, raw)
-            while not serialized:
+            serialized = self._pop(raw=raw, rowid=rowid)
+            while serialized is None:
                 self.put_event.clear()
                 remaining = endtime - _time.time()
                 if remaining <= 0.0:
                     raise Empty
                 self.put_event.wait(
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
-                serialized = self._pop(start, raw)
+                serialized = self._pop(raw=raw, rowid=rowid)
         return serialized
 
     def task_done(self):
@@ -158,6 +166,7 @@ class UniqueQ(SQLiteQueue):
 
     def put(self, item):
         obj = self._serializer.dumps(item, sort_keys=True)
+        _id = None
         try:
             _id = self._insert_into(obj, _time.time())
         except sqlite3.IntegrityError:
