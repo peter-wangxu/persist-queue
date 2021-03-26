@@ -230,13 +230,20 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                 self.put_event.wait(
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
                 serialized = self._pop(start, raw)
-        item = serialized
-        return item
+        return serialized
 
     def task_done(self):
         """Persist the current state if auto_commit=False."""
         if not self.auto_commit:
             self._task_done()
+
+    def queue(self):
+        rows = self._sql_queue()
+        datarows = []
+        for row in rows:
+            item = {'id': row[0], 'data': self._serializer.loads(row[1]), 'timestamp': row[2], 'status': row[3]}
+            datarows.append(item)
+        return datarows
 
     @property
     def size(self):

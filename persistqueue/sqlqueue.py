@@ -64,20 +64,22 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                 if row and row[0] is not None:
                     self._delete(row[0])
                     self.total -= 1
+                    item = self._serializer.loads(row[1])
                     if raw:
-                        return {'id': row[0], 'data': row[1], 'tiemstamp': row[2]}
+                        return {'id': row[0], 'data': item , 'tiemstamp': row[2]}
                     else:
-                        return row[1] # serialized data
+                        return item
             else:
                 row = self._select(
                     self.cursor, op=">", column=self._KEY_COLUMN, start=start)
                 if row and row[0] is not None:
                     self.cursor = row[0]
                     self.total -= 1
+                    item = self._serializer.loads(row[1])
                     if raw:
-                        return {'id': row[0], 'data': row[1], 'tiemstamp': row[2]}
+                        return {'id': row[0], 'data': item, 'tiemstamp': row[2]}
                     else:
-                        return row[1]
+                        return item
             return None
 
     def get(self, block=True, timeout=None, start=None, raw=False):
@@ -106,14 +108,21 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                 self.put_event.wait(
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
                 serialized = self._pop(start, raw)
-        item = self._serializer.loads(serialized)
-        return item
+        return serialized
 
     def task_done(self):
         """Persist the current state if auto_commit=False."""
         if not self.auto_commit:
             self._delete(self.cursor, op='<=')
             self._task_done()
+
+    def queue(self):
+        rows = self._sql_queue()
+        datarows = []
+        for row in rows:
+            item = {'id': row[0], 'data': self._serializer.loads(row[1]), 'timestamp': row[2]}
+            datarows.append(item)
+        return datarows
 
     @property
     def size(self):

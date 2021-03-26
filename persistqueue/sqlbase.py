@@ -166,6 +166,10 @@ class SQLiteBase(object):
         """Only required if auto-commit is set as False."""
         commit_ignore_error(self._putter)
 
+    def _sql_queue(self):
+        sql = 'SELECT * FROM {}'.format(self._table_name)
+        return self._getter.execute(sql)
+
     @property
     def _table_name(self):
         return '`{}_{}`'.format(self._TABLE_NAME, self.name)
