@@ -150,22 +150,22 @@ class SQLiteBase(object):
     def _select(self, *args, **kwargs):
         op = kwargs.get('op', None)
         column = kwargs.get('column', None)
-        in_order = kwargs.get('in_order', False)
+        next_in_order = kwargs.get('next_in_order', False)
         rowid = kwargs.get('rowid') if kwargs.get('rowid', None) else 0
-        if not in_order and rowid > 0:
+        if not next_in_order and rowid > 0:
             # Get the record by the id
             result = self._getter.execute(
                 self._sql_select_id(rowid), args).fetchone()
         elif op and column:
             # Get the next record with criteria
-            rowid = rowid if in_order else 0
+            rowid = rowid if next_in_order else 0
             result = self._getter.execute(
                 self._sql_select_where(rowid, op, column), args).fetchone()
         else:
             # Get the next record
-            rowid = rowid if in_order else 0
+            rowid = rowid if next_in_order else 0
             result = self._getter.execute(self._sql_select(rowid), args).fetchone()
-        if in_order and rowid > 0 and len(result) == 0:
+        if next_in_order and rowid > 0 and len(result) == 0:
             # sqlackqueue: if we're at the end, start over - loop incremental
             kwargs['rowid'] = 0
             result = self._select(args=args, kwargs=kwargs)

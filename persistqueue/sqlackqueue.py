@@ -150,9 +150,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return self._SQL_MARK_ACK_UPDATE.format(table_name=self._table_name,
                                                 key_column=self._key_column)
 
-    def _pop(self, rowid=None, in_order=False, raw=False):
+    def _pop(self, rowid=None, next_in_order=False, raw=False):
         with self.action_lock:
-            row = self._select(in_order=in_order, rowid=rowid)
+            row = self._select(next_in_order=next_in_order, rowid=rowid)
             # Perhaps a sqlite3 bug, sometimes (None, None) is returned
             # by select, below can avoid these invalid records.
             if row and row[0] is not None:
@@ -211,34 +211,34 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             self.total += 1
         return _id
 
-    def get(self, block=True, timeout=None, item=None, in_order=False, raw=False):
-        if isinstance(item, dict) and "pqid" in item:
-            rowid = item.get("pqid")
-        elif isinstance(item, int):
-            rowid = item
+    def get(self, block=True, timeout=None, id=None, next_in_order=False, raw=False):
+        if isinstance(id, dict) and "pqid" in id:
+            rowid = id.get("pqid")
+        elif isinstance(id, int):
+            rowid = id
         else:
-            if in_order:
-                raise ValueError("'in_order' requires an item.")
+            if next_in_order:
+                raise ValueError("'next_in_order' requires an item.")
             rowid = None
-        if in_order and not isinstance(in_order, bool):
-            raise ValueError("'in_order' must be a boolean (True/False)")
+        if next_in_order and not isinstance(next_in_order, bool):
+            raise ValueError("'next_in_order' must be a boolean (True/False)")
         if not block:
-            serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
+            serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
             if serialized is None:
                 raise Empty
         elif timeout is None:
             # block until a put event.
-            serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
+            serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
             while serialized is None:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
-                serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
+                serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
         elif timeout < 0:
             raise ValueError("'timeout' must be a non-negative number")
         else:
             # block until the timeout reached
             endtime = _time.time() + timeout
-            serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
+            serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
             while serialized is None:
                 self.put_event.clear()
                 remaining = endtime - _time.time()
@@ -246,7 +246,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                     raise Empty
                 self.put_event.wait(
                     TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
-                serialized = self._pop(in_order=in_order, raw=raw, rowid=rowid)
+                serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
         return serialized
 
     def task_done(self):

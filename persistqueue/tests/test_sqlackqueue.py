@@ -300,12 +300,12 @@ class SQLite3AckQueueTest(unittest.TestCase):
          # item should get val2
         self.assertEqual(item, 'val2')
 
-    def test_get_in_order(self):
+    def test_get_next_in_order(self):
         q = SQLiteAckQueue(path=self.path)
         val1 = q.put("val1")
         q.put("val2")
         q.put("val3")
-        item = q.get(item=val1, in_order=True)
+        item = q.get(item=val1, next_in_order=True)
         # item id should be 1
         self.assertEqual(val1, 1)
          # item should get val2

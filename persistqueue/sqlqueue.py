@@ -84,11 +84,11 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                         return item
             return None
 
-    def get(self, block=True, timeout=None, item=None, raw=False):
-        if isinstance(item, dict) and "pqid" in item:
-            rowid = item.get("pqid")
-        elif isinstance(item, int):
-            rowid = item
+    def get(self, block=True, timeout=None, id=None, raw=False):
+        if isinstance(id, dict) and "pqid" in id:
+            rowid = id.get("pqid")
+        elif isinstance(id, int):
+            rowid = id
         else:
             rowid = None
         if not block:
