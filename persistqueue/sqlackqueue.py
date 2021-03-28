@@ -249,7 +249,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             rowid = id
         else:
             if next_in_order:
-                raise ValueError("'next_in_order' requires an item.")
+                raise ValueError(
+                    "'next_in_order' requires the preceding 'id' be specified."
+                )
             rowid = None
         if next_in_order and not isinstance(next_in_order, bool):
             raise ValueError("'next_in_order' must be a boolean (True/False)")
