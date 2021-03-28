@@ -24,18 +24,26 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     _TABLE_NAME = 'queue'
     _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
     # SQL to create a table
-    _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
-                   '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
-                   'data BLOB, timestamp FLOAT)')
+    _SQL_CREATE = (
+        'CREATE TABLE IF NOT EXISTS {table_name} ('
+        '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'data BLOB, timestamp FLOAT)'
+    )
     # SQL to insert a record
     _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp) VALUES (?, ?)'
     # SQL to select a record
-    _SQL_SELECT_ID = ('SELECT {key_column}, data, timestamp FROM {table_name} WHERE'
-                   ' {key_column} = {rowid}')
-    _SQL_SELECT = ('SELECT {key_column}, data, timestamp FROM {table_name} '
-                   'ORDER BY {key_column} ASC LIMIT 1')
-    _SQL_SELECT_WHERE = 'SELECT {key_column}, data, timestamp FROM {table_name} WHERE' \
-                        ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
+    _SQL_SELECT_ID = (
+        'SELECT {key_column}, data, timestamp FROM {table_name} WHERE'
+        ' {key_column} = {rowid}'
+    )
+    _SQL_SELECT = (
+        'SELECT {key_column}, data, timestamp FROM {table_name} '
+        'ORDER BY {key_column} ASC LIMIT 1'
+    )
+    _SQL_SELECT_WHERE = (
+        'SELECT {key_column}, data, timestamp FROM {table_name} WHERE'
+        ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
+    )
 
     def put(self, item):
         obj = self._serializer.dumps(item)
@@ -68,18 +76,27 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                     self.total -= 1
                     item = self._serializer.loads(row[1])
                     if raw:
-                        return {'pqid': row[0], 'data': item , 'tiemstamp': row[2]}
+                        return {
+                            'pqid': row[0],
+                            'data': item,
+                            'tiemstamp': row[2],
+                        }
                     else:
                         return item
             else:
                 row = self._select(
-                    self.cursor, op=">", column=self._KEY_COLUMN, rowid=rowid)
+                    self.cursor, op=">", column=self._KEY_COLUMN, rowid=rowid
+                )
                 if row and row[0] is not None:
                     self.cursor = row[0]
                     self.total -= 1
                     item = self._serializer.loads(row[1])
                     if raw:
-                        return {'pqid': row[0], 'data': item, 'tiemstamp': row[2]}
+                        return {
+                            'pqid': row[0],
+                            'data': item,
+                            'tiemstamp': row[2],
+                        }
                     else:
                         return item
             return None
@@ -114,7 +131,8 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                 if remaining <= 0.0:
                     raise Empty
                 self.put_event.wait(
-                    TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
+                    TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining
+                )
                 serialized = self._pop(raw=raw, rowid=rowid)
         return serialized
 
@@ -128,7 +146,11 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         rows = self._sql_queue()
         datarows = []
         for row in rows:
-            item = {'id': row[0], 'data': self._serializer.loads(row[1]), 'timestamp': row[2]}
+            item = {
+                'id': row[0],
+                'data': self._serializer.loads(row[1]),
+                'timestamp': row[2],
+            }
             datarows.append(item)
         return datarows
 
@@ -154,15 +176,19 @@ class FILOSQLiteQueue(SQLiteQueue):
 
     _TABLE_NAME = 'filo_queue'
     # SQL to select a record
-    _SQL_SELECT = ('SELECT {key_column}, data FROM {table_name} '
-                   'ORDER BY {key_column} DESC LIMIT 1')
+    _SQL_SELECT = (
+        'SELECT {key_column}, data FROM {table_name} '
+        'ORDER BY {key_column} DESC LIMIT 1'
+    )
 
 
 class UniqueQ(SQLiteQueue):
     _TABLE_NAME = 'unique_queue'
-    _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
-                   '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
-                   'data BLOB, timestamp FLOAT, UNIQUE (data))')
+    _SQL_CREATE = (
+        'CREATE TABLE IF NOT EXISTS {table_name} ('
+        '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'data BLOB, timestamp FLOAT, UNIQUE (data))'
+    )
 
     def put(self, item):
         obj = self._serializer.dumps(item, sort_keys=True)

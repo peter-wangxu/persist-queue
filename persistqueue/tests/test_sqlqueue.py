@@ -284,6 +284,8 @@ class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
 
 
 class SQLite3QueueInMemory(SQLite3QueueTest):
+    skipstr = 'Skipped due to occasional crash during multithreading mode.'
+
     def setUp(self):
         self.path = ":memory:"
         self.auto_commit = True
@@ -295,16 +297,13 @@ class SQLite3QueueInMemory(SQLite3QueueTest):
         self.skipTest('Memory based sqlite is not persistent.')
 
     def test_multiple_consumers(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
+        self.skipTest(self.skipstr)
 
     def test_multi_threaded_multi_producer(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
+        self.skipTest(self.skipstr)
 
     def test_multi_threaded_parallel(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
+        self.skipTest(self.skipstr)
 
     def test_task_done_with_restart(self):
         self.skipTest('Skipped due to not persistent.')

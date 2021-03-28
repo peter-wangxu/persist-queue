@@ -32,26 +32,37 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     _TABLE_NAME = 'ack_queue'
     _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
-    _MAX_ACKED_LENGTH = 1000 # depreciated
+    _MAX_ACKED_LENGTH = 1000  # depreciated
     # SQL to create a table
-    _SQL_CREATE = ('CREATE TABLE IF NOT EXISTS {table_name} ('
-                   '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
-                   'data BLOB, timestamp FLOAT, status INTEGER)')
+    _SQL_CREATE = (
+        'CREATE TABLE IF NOT EXISTS {table_name} ('
+        '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'data BLOB, timestamp FLOAT, status INTEGER)'
+    )
     # SQL to insert a record
-    _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, status)' \
-                  ' VALUES (?, ?, %s)' % AckStatus.inited
+    _SQL_INSERT = (
+        'INSERT INTO {table_name} (data, timestamp, status)'
+        ' VALUES (?, ?, %s)' % AckStatus.inited
+    )
     # SQL to select a record
-    _SQL_SELECT_ID = ('SELECT {key_column}, data, timestamp, status FROM {table_name} WHERE'
-                   ' {key_column} = {rowid}')
-    _SQL_SELECT = ('SELECT {key_column}, data, timestamp, status FROM {table_name} '
-                   'WHERE {key_column} > {rowid} AND status < %s '
-                   'ORDER BY {key_column} ASC LIMIT 1' % AckStatus.unack)
-    _SQL_MARK_ACK_UPDATE = 'UPDATE {table_name} SET status = ?' \
-                           ' WHERE {key_column} = ?'
-    _SQL_SELECT_WHERE = 'SELECT {key_column}, data, timestamp FROM {table_name}' \
-                        ' WHERE {key_column} > {rowid} AND status < %s AND' \
-                        ' {column} {op} ? ORDER BY {key_column} ASC' \
-                        ' LIMIT 1 ' % AckStatus.unack
+    _SQL_SELECT_ID = (
+        'SELECT {key_column}, data, timestamp, status FROM {table_name} WHERE'
+        ' {key_column} = {rowid}'
+    )
+    _SQL_SELECT = (
+        'SELECT {key_column}, data, timestamp, status FROM {table_name} '
+        'WHERE {key_column} > {rowid} AND status < %s '
+        'ORDER BY {key_column} ASC LIMIT 1' % AckStatus.unack
+    )
+    _SQL_MARK_ACK_UPDATE = (
+        'UPDATE {table_name} SET status = ?' ' WHERE {key_column} = ?'
+    )
+    _SQL_SELECT_WHERE = (
+        'SELECT {key_column}, data, timestamp FROM {table_name}'
+        ' WHERE {key_column} > {rowid} AND status < %s AND'
+        ' {column} {op} ? ORDER BY {key_column} ASC'
+        ' LIMIT 1 ' % AckStatus.unack
+    )
 
     def __init__(self, path, auto_resume=True, **kwargs):
         super(SQLiteAckQueue, self).__init__(path, **kwargs)
@@ -67,9 +78,13 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         unack_count = self.unack_count()
         if unack_count:
             log.warning("resume %d unack tasks", unack_count)
-        sql = 'UPDATE {} set status = ?' \
-              ' WHERE status = ?'.format(self._table_name)
-        return sql, (AckStatus.ready, AckStatus.unack,)
+        sql = 'UPDATE {} set status = ?' ' WHERE status = ?'.format(
+            self._table_name
+        )
+        return sql, (
+            AckStatus.ready,
+            AckStatus.unack,
+        )
 
     def put(self, item):
         obj = self._serializer.dumps(item)
@@ -85,16 +100,16 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         self.total = self._count()
 
     def _count(self):
-        sql = 'SELECT COUNT({}) FROM {}' \
-              ' WHERE status < ?'.format(self._key_column,
-                                         self._table_name)
+        sql = 'SELECT COUNT({}) FROM {}' ' WHERE status < ?'.format(
+            self._key_column, self._table_name
+        )
         row = self._getter.execute(sql, (AckStatus.unack,)).fetchone()
         return row[0] if row else 0
 
     def _ack_count_via_status(self, status):
-        sql = 'SELECT COUNT({}) FROM {}' \
-              ' WHERE status = ?'.format(self._key_column,
-                                         self._table_name)
+        sql = 'SELECT COUNT({}) FROM {}' ' WHERE status = ?'.format(
+            self._key_column, self._table_name
+        )
         row = self._getter.execute(sql, (status,)).fetchone()
         return row[0] if row else 0
 
@@ -112,16 +127,25 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     @sqlbase.with_conditional_transaction
     def _mark_ack_status(self, key, status):
-        return self._sql_mark_ack_status, (status, key,)
+        return self._sql_mark_ack_status, (
+            status,
+            key,
+        )
 
     @sqlbase.with_conditional_transaction
-    def clear_acked_data(self, max_delete=1000, keep_latest=1000, clear_ack_failed=False):
+    def clear_acked_data(
+        self, max_delete=1000, keep_latest=1000, clear_ack_failed=False
+    ):
         acked_clear_all = ''
         acked_to_delete = ''
         acked_to_keep = ''
         if self._MAX_ACKED_LENGTH != 1000 and not max_delete:
-            # Added for backward compatibility for those that set the _MAX_ACKED_LENGTH
-            print("_MAX_ACKED_LENGTH has been depreciated.  Use clear_acked_data(keep_latest=1000, max_delete=1000)")
+            # Added for backward compatibility for
+            # those that set the _MAX_ACKED_LENGTH
+            print(
+                "_MAX_ACKED_LENGTH has been depreciated.  \
+                    Use clear_acked_data(keep_latest=1000, max_delete=1000)"
+            )
             max_delete = self._MAX_ACKED_LENGTH
         if clear_ack_failed:
             acked_clear_all = 'OR status = %s' % AckStatus.ack_failed
@@ -131,13 +155,17 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             acked_to_keep = 'OFFSET %d' % keep_latest
         sql = """DELETE FROM {table_name}
             WHERE {key_column} IN (
-                SELECT _id FROM {table_name} WHERE status = ? {clear_ack_failed}
-                ORDER BY {key_column} DESC {acked_to_delete} {acked_to_keep}
-            )""".format(table_name=self._table_name,
-                        key_column=self._key_column,
-                        acked_to_delete=acked_to_delete,
-                        acked_to_keep=acked_to_keep,
-                        clear_ack_failed=acked_clear_all)
+                SELECT _id FROM {table_name}
+                WHERE status = ? {clear_ack_failed}
+                ORDER BY {key_column}
+                DESC {acked_to_delete} {acked_to_keep}
+            )""".format(
+            table_name=self._table_name,
+            key_column=self._key_column,
+            acked_to_delete=acked_to_delete,
+            acked_to_keep=acked_to_keep,
+            clear_ack_failed=acked_clear_all,
+        )
         return sql, AckStatus.acked
 
     @sqlbase.with_conditional_transaction
@@ -147,8 +175,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     @property
     def _sql_mark_ack_status(self):
-        return self._SQL_MARK_ACK_UPDATE.format(table_name=self._table_name,
-                                                key_column=self._key_column)
+        return self._SQL_MARK_ACK_UPDATE.format(
+            table_name=self._table_name, key_column=self._key_column
+        )
 
     def _pop(self, rowid=None, next_in_order=False, raw=False):
         with self.action_lock:
@@ -211,7 +240,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             self.total += 1
         return _id
 
-    def get(self, block=True, timeout=None, id=None, next_in_order=False, raw=False):
+    def get(
+        self, block=True, timeout=None, id=None, next_in_order=False, raw=False
+    ):
         if isinstance(id, dict) and "pqid" in id:
             rowid = id.get("pqid")
         elif isinstance(id, int):
@@ -223,30 +254,41 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         if next_in_order and not isinstance(next_in_order, bool):
             raise ValueError("'next_in_order' must be a boolean (True/False)")
         if not block:
-            serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
+            serialized = self._pop(
+                next_in_order=next_in_order, raw=raw, rowid=rowid
+            )
             if serialized is None:
                 raise Empty
         elif timeout is None:
             # block until a put event.
-            serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
+            serialized = self._pop(
+                next_in_order=next_in_order, raw=raw, rowid=rowid
+            )
             while serialized is None:
                 self.put_event.clear()
                 self.put_event.wait(TICK_FOR_WAIT)
-                serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
+                serialized = self._pop(
+                    next_in_order=next_in_order, raw=raw, rowid=rowid
+                )
         elif timeout < 0:
             raise ValueError("'timeout' must be a non-negative number")
         else:
             # block until the timeout reached
             endtime = _time.time() + timeout
-            serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
+            serialized = self._pop(
+                next_in_order=next_in_order, raw=raw, rowid=rowid
+            )
             while serialized is None:
                 self.put_event.clear()
                 remaining = endtime - _time.time()
                 if remaining <= 0.0:
                     raise Empty
                 self.put_event.wait(
-                    TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining)
-                serialized = self._pop(next_in_order=next_in_order, raw=raw, rowid=rowid)
+                    TICK_FOR_WAIT if TICK_FOR_WAIT < remaining else remaining
+                )
+                serialized = self._pop(
+                    next_in_order=next_in_order, raw=raw, rowid=rowid
+                )
         return serialized
 
     def task_done(self):
@@ -258,7 +300,12 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         rows = self._sql_queue()
         datarows = []
         for row in rows:
-            item = {'id': row[0], 'data': self._serializer.loads(row[1]), 'timestamp': row[2], 'status': row[3]}
+            item = {
+                'id': row[0],
+                'data': self._serializer.loads(row[1]),
+                'timestamp': row[2],
+                'status': row[3],
+            }
             datarows.append(item)
         return datarows
 
@@ -287,9 +334,11 @@ class FILOSQLiteAckQueue(SQLiteAckQueue):
 
     _TABLE_NAME = 'ack_filo_queue'
     # SQL to select a record
-    _SQL_SELECT = ('SELECT {key_column}, data FROM {table_name} '
-                   'WHERE status < %s '
-                   'ORDER BY {key_column} DESC LIMIT 1' % AckStatus.unack)
+    _SQL_SELECT = (
+        'SELECT {key_column}, data FROM {table_name} '
+        'WHERE status < %s '
+        'ORDER BY {key_column} DESC LIMIT 1' % AckStatus.unack
+    )
 
 
 class UniqueAckQ(SQLiteAckQueue):

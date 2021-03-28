@@ -34,7 +34,8 @@ def commit_ignore_error(conn):
         if 'no transaction is active' in str(ex):
             log.debug(
                 'Not able to commit the transaction, '
-                'may already be committed.')
+                'may already be committed.'
+            )
         else:
             raise
 
@@ -48,14 +49,20 @@ class SQLiteBase(object):
     _SQL_UPDATE = ''  # SQL to update a record
     _SQL_INSERT = ''  # SQL to insert a record
     _SQL_SELECT = ''  # SQL to select a record
-    _SQL_SELECT_ID = ''     # SQL to select a record with criteria
+    _SQL_SELECT_ID = ''  # SQL to select a record with criteria
     _SQL_SELECT_WHERE = ''  # SQL to select a record with criteria
     _MEMORY = ':memory:'  # flag indicating store DB in memory
 
-    def __init__(self, path, name='default', multithreading=False,
-                 timeout=10.0, auto_commit=True,
-                 serializer=persistqueue.serializers.pickle,
-                 db_file_name=None):
+    def __init__(
+        self,
+        path,
+        name='default',
+        multithreading=False,
+        timeout=10.0,
+        auto_commit=True,
+        serializer=persistqueue.serializers.pickle,
+        db_file_name=None,
+    ):
         """Initiate a queue in sqlite3 or memory.
 
         :param path: path for storing DB file.
@@ -99,9 +106,11 @@ class SQLiteBase(object):
         elif not os.path.exists(self.path):
             os.makedirs(self.path)
             log.debug(
-                'Initializing Sqlite3 Queue with path {}'.format(self.path))
+                'Initializing Sqlite3 Queue with path {}'.format(self.path)
+            )
         self._conn = self._new_db_connection(
-            self.path, self.multithreading, self.timeout)
+            self.path, self.multithreading, self.timeout
+        )
         self._getter = self._conn
         self._putter = self._conn
 
@@ -111,7 +120,8 @@ class SQLiteBase(object):
         if self.multithreading:
             if not self.memory_sql:
                 self._putter = self._new_db_connection(
-                    self.path, self.multithreading, self.timeout)
+                    self.path, self.multithreading, self.timeout
+                )
         self._conn.text_factory = str
         self._putter.text_factory = str
 
@@ -122,12 +132,13 @@ class SQLiteBase(object):
     def _new_db_connection(self, path, multithreading, timeout):
         conn = None
         if path == self._MEMORY:
-            conn = sqlite3.connect(path,
-                                check_same_thread=not multithreading)
+            conn = sqlite3.connect(path, check_same_thread=not multithreading)
         else:
-            conn = sqlite3.connect('{}/{}'.format(path, self.db_file_name),
-                                timeout=timeout,
-                                check_same_thread=not multithreading)
+            conn = sqlite3.connect(
+                '{}/{}'.format(path, self.db_file_name),
+                timeout=timeout,
+                check_same_thread=not multithreading,
+            )
         conn.execute('PRAGMA journal_mode=WAL;')
         return conn
 
@@ -142,9 +153,9 @@ class SQLiteBase(object):
 
     @with_conditional_transaction
     def _delete(self, key, op='='):
-        sql = 'DELETE FROM {} WHERE {} {} ?'.format(self._table_name,
-                                                    self._key_column,
-                                                    op)
+        sql = 'DELETE FROM {} WHERE {} {} ?'.format(
+            self._table_name, self._key_column, op
+        )
         return sql, (key,)
 
     def _select(self, *args, **kwargs):
@@ -155,16 +166,20 @@ class SQLiteBase(object):
         if not next_in_order and rowid > 0:
             # Get the record by the id
             result = self._getter.execute(
-                self._sql_select_id(rowid), args).fetchone()
+                self._sql_select_id(rowid), args
+            ).fetchone()
         elif op and column:
             # Get the next record with criteria
             rowid = rowid if next_in_order else 0
             result = self._getter.execute(
-                self._sql_select_where(rowid, op, column), args).fetchone()
+                self._sql_select_where(rowid, op, column), args
+            ).fetchone()
         else:
             # Get the next record
             rowid = rowid if next_in_order else 0
-            result = self._getter.execute(self._sql_select(rowid), args).fetchone()
+            result = self._getter.execute(
+                self._sql_select(rowid), args
+            ).fetchone()
         if next_in_order and rowid > 0 and len(result) == 0:
             # sqlackqueue: if we're at the end, start over - loop incremental
             kwargs['rowid'] = 0
@@ -172,8 +187,9 @@ class SQLiteBase(object):
         return result
 
     def _count(self):
-        sql = 'SELECT COUNT({}) FROM {}'.format(self._key_column,
-                                                self._table_name)
+        sql = 'SELECT COUNT({}) FROM {}'.format(
+            self._key_column, self._table_name
+        )
         row = self._getter.execute(sql).fetchone()
         return row[0] if row else 0
 
@@ -195,35 +211,44 @@ class SQLiteBase(object):
 
     @property
     def _sql_create(self):
-        return self._SQL_CREATE.format(table_name=self._table_name,
-                                       key_column=self._key_column)
+        return self._SQL_CREATE.format(
+            table_name=self._table_name, key_column=self._key_column
+        )
 
     @property
     def _sql_insert(self):
-        return self._SQL_INSERT.format(table_name=self._table_name,
-                                       key_column=self._key_column)
+        return self._SQL_INSERT.format(
+            table_name=self._table_name, key_column=self._key_column
+        )
 
     @property
     def _sql_update(self):
-        return self._SQL_UPDATE.format(table_name=self._table_name,
-                                       key_column=self._key_column)
+        return self._SQL_UPDATE.format(
+            table_name=self._table_name, key_column=self._key_column
+        )
 
     def _sql_select_id(self, rowid):
-        return self._SQL_SELECT_ID.format(table_name=self._table_name,
-                                       key_column=self._key_column,
-                                       rowid=rowid)
+        return self._SQL_SELECT_ID.format(
+            table_name=self._table_name,
+            key_column=self._key_column,
+            rowid=rowid,
+        )
 
     def _sql_select(self, rowid):
-        return self._SQL_SELECT.format(table_name=self._table_name,
-                                       key_column=self._key_column,
-                                       rowid=rowid)
+        return self._SQL_SELECT.format(
+            table_name=self._table_name,
+            key_column=self._key_column,
+            rowid=rowid,
+        )
 
     def _sql_select_where(self, rowid, op, column):
-        return self._SQL_SELECT_WHERE.format(table_name=self._table_name,
-                                             key_column=self._key_column,
-                                             rowid=rowid,
-                                             op=op,
-                                             column=column)
+        return self._SQL_SELECT_WHERE.format(
+            table_name=self._table_name,
+            key_column=self._key_column,
+            rowid=rowid,
+            op=op,
+            column=column,
+        )
 
     def __del__(self):
         """Handles sqlite connection when queue was deleted"""
