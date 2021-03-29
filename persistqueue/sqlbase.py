@@ -180,7 +180,7 @@ class SQLiteBase(object):
             result = self._getter.execute(
                 self._sql_select(rowid), args
             ).fetchone()
-        if next_in_order and rowid > 0 and len(result) == 0:
+        if next_in_order and rowid > 0 and (not result or len(result) == 0):
             # sqlackqueue: if we're at the end, start over - loop incremental
             kwargs['rowid'] = 0
             result = self._select(args=args, kwargs=kwargs)
