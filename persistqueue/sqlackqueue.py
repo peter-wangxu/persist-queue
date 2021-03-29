@@ -63,6 +63,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         ' {column} {op} ? ORDER BY {key_column} ASC'
         ' LIMIT 1 ' % AckStatus.unack
     )
+    _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
 
     def __init__(self, path, auto_resume=True, **kwargs):
         super(SQLiteAckQueue, self).__init__(path, **kwargs)
@@ -238,6 +239,19 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             self._mark_ack_status(_id, AckStatus.ready)
             self._unack_cache.pop(_id)
             self.total += 1
+        return _id
+
+    def update(self, id, item):
+        if isinstance(id, dict) and "pqid" in id:
+            _id = id.get("pqid")
+        elif isinstance(id, int):
+            _id = id
+        else:
+            raise ValueError("'id' required")
+        if isinstance(item, dict) and "pqid" in item:
+            item = id.get("data")
+        obj = self._serializer.dumps(item)
+        self._update(_id, obj)
         return _id
 
     def get(

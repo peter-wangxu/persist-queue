@@ -351,6 +351,13 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(len(d), 3)
         self.assertEqual(d[1].get("data"), "val2")
 
+    def test_update(self):
+        q = SQLiteAckQueue(path=self.path)
+        qid = q.put("val1")
+        q.update(id=qid, item="val2")
+        item = q.get(id=qid)
+        self.assertEqual(item, "val2")
+
 
 class SQLite3QueueInMemory(SQLite3AckQueueTest):
     def setUp(self):
