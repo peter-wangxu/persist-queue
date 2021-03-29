@@ -249,7 +249,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         else:
             raise ValueError("'id' required")
         if isinstance(item, dict) and "pqid" in item:
-            item = id.get("data")
+            item = item.get("data")
         obj = self._serializer.dumps(item)
         self._update(_id, obj)
         return _id
