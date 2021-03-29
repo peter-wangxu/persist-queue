@@ -245,11 +245,11 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_get_id(self):
         q = SQLiteQueue(path=self.path)
         q.put("val1")
-        val2 = q.put("val2")
+        val2_id = q.put("val2")
         q.put("val3")
-        item = q.get(item=val2)
+        item = q.get(id=val2_id)
         # item id should be 2
-        self.assertEqual(val2, 2)
+        self.assertEqual(val2_id, 2)
         # item should get val2
         self.assertEqual(item, 'val2')
 
@@ -260,6 +260,16 @@ class SQLite3QueueTest(unittest.TestCase):
         # item should get val2
         self.assertEqual(True, "pqid" in item)
         self.assertEqual(item.get("data"), 'val1')
+
+    def test_queue(self):
+        q = SQLiteQueue(path=self.path)
+        q.put("val1")
+        q.put("val2")
+        q.put("val3")
+        # queue should get the three items
+        d = q.queue()
+        self.assertEqual(len(d), 3)
+        self.assertEqual(d[1].get("data"), "val2")
 
 
 class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):

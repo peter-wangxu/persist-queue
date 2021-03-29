@@ -159,7 +159,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         return self.total
 
     def qsize(self):
-        return self.size
+        return max(0, self.size)
 
     def empty(self):
         return self.size == 0

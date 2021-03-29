@@ -263,6 +263,8 @@ class SQLite3AckQueueTest(unittest.TestCase):
         # qsize should be zero when all item is getted from q
         self.assertEqual(q.qsize(), 0)
         self.assertEqual(q.unack_count(), 3)
+        # active size should be equal to qsize + unack_count
+        self.assertEqual(q.active_size(), 3)
         # nack will let the item requeued as ready status
         q.nack(val1)
         self.assertEqual(q.qsize(), 1)
@@ -293,22 +295,22 @@ class SQLite3AckQueueTest(unittest.TestCase):
     def test_get_id(self):
         q = SQLiteAckQueue(path=self.path)
         q.put("val1")
-        val2 = q.put("val2")
+        val2_id = q.put("val2")
         q.put("val3")
-        item = q.get(item=val2)
+        item = q.get(id=val2_id)
         # item id should be 2
-        self.assertEqual(val2, 2)
+        self.assertEqual(val2_id, 2)
         # item should get val2
         self.assertEqual(item, 'val2')
 
     def test_get_next_in_order(self):
         q = SQLiteAckQueue(path=self.path)
-        val1 = q.put("val1")
+        val1_id = q.put("val1")
         q.put("val2")
         q.put("val3")
-        item = q.get(item=val1, next_in_order=True)
+        item = q.get(id=val1_id, next_in_order=True)
         # item id should be 1
-        self.assertEqual(val1, 1)
+        self.assertEqual(val1_id, 1)
         # item should get val2
         self.assertEqual(item, 'val2')
 
@@ -338,6 +340,16 @@ class SQLite3AckQueueTest(unittest.TestCase):
         q.ack(item)
         # active_size should be 0 after ack
         self.assertEqual(q.active_size(), 0)
+
+    def test_queue(self):
+        q = SQLiteAckQueue(path=self.path)
+        q.put("val1")
+        q.put("val2")
+        q.put("val3")
+        # queue should get the three items
+        d = q.queue()
+        self.assertEqual(len(d), 3)
+        self.assertEqual(d[1].get("data"), "val2")
 
 
 class SQLite3QueueInMemory(SQLite3AckQueueTest):
