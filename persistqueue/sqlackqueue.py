@@ -197,56 +197,50 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                     return item
             return None
 
-    def _find_item_id(self, item):
-        for key, value in self._unack_cache.items():
-            if value is item:
-                return key
-        log.warning("Can't find item in unack cache.")
+    def _find_item_id(self, item, search=True):
+        if isinstance(item, dict) and "pqid" in item:
+            return item.get("pqid")
+        elif search:
+            for key, value in self._unack_cache.items():
+                if value is item:
+                    return key
+        if isinstance(item, int):
+            return item
+        elif search:
+            log.warning("Can't find item in unack cache.")
         return None
 
     def ack(self, item):
         with self.action_lock:
-            if isinstance(item, dict) and "pqid" in item:
-                _id = item.get("pqid")
-            else:
-                _id = self._find_item_id(item)
+            _id = self._find_item_id(item)
             if _id is None:
-                return
+                return None
             self._mark_ack_status(_id, AckStatus.acked)
             self._unack_cache.pop(_id)
         return _id
 
     def ack_failed(self, item):
         with self.action_lock:
-            if isinstance(item, dict) and "pqid" in item:
-                _id = item.get("pqid")
-            else:
-                _id = self._find_item_id(item)
+            _id = self._find_item_id(item)
             if _id is None:
-                return
+                return None
             self._mark_ack_status(_id, AckStatus.ack_failed)
             self._unack_cache.pop(_id)
         return _id
 
     def nack(self, item):
         with self.action_lock:
-            if isinstance(item, dict) and "pqid" in item:
-                _id = item.get("pqid")
-            else:
-                _id = self._find_item_id(item)
+            _id = self._find_item_id(item)
             if _id is None:
-                return
+                return None
             self._mark_ack_status(_id, AckStatus.ready)
             self._unack_cache.pop(_id)
             self.total += 1
         return _id
 
     def update(self, id, item):
-        if isinstance(id, dict) and "pqid" in id:
-            _id = id.get("pqid")
-        elif isinstance(id, int):
-            _id = id
-        else:
+        _id = self._find_item_id(id, search=False)
+        if _id is None:
             raise ValueError("'id' required")
         if isinstance(item, dict) and "pqid" in item:
             item = item.get("data")
@@ -257,16 +251,11 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     def get(
         self, block=True, timeout=None, id=None, next_in_order=False, raw=False
     ):
-        if isinstance(id, dict) and "pqid" in id:
-            rowid = id.get("pqid")
-        elif isinstance(id, int):
-            rowid = id
-        else:
-            if next_in_order:
-                raise ValueError(
-                    "'next_in_order' requires the preceding 'id' be specified."
-                )
-            rowid = None
+        rowid = self._find_item_id(id, search=False)
+        if rowid is None and next_in_order:
+            raise ValueError(
+                "'next_in_order' requires the preceding 'id' be specified."
+            )
         if next_in_order and not isinstance(next_in_order, bool):
             raise ValueError("'next_in_order' must be a boolean (True/False)")
         if not block:
