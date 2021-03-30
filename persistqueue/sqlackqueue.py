@@ -198,7 +198,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             return None
 
     def _find_item_id(self, item, search=True):
-        if isinstance(item, dict) and "pqid" in item:
+        if item is None:
+            return None
+        elif isinstance(item, dict) and "pqid" in item:
             return item.get("pqid")
         elif search:
             for key, value in self._unack_cache.items():
