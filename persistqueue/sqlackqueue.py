@@ -218,7 +218,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             if _id is None:
                 return None
             self._mark_ack_status(_id, AckStatus.acked)
-            self._unack_cache.pop(_id)
+            if _id in self._unack_cache:
+                self._unack_cache.pop(_id)
         return _id
 
     def ack_failed(self, item):
@@ -227,7 +228,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             if _id is None:
                 return None
             self._mark_ack_status(_id, AckStatus.ack_failed)
-            self._unack_cache.pop(_id)
+            if _id in self._unack_cache:
+                self._unack_cache.pop(_id)
         return _id
 
     def nack(self, item):
@@ -236,7 +238,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             if _id is None:
                 return None
             self._mark_ack_status(_id, AckStatus.ready)
-            self._unack_cache.pop(_id)
+            if _id in self._unack_cache:
+                self._unack_cache.pop(_id)
             self.total += 1
         return _id
 
