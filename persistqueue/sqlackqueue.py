@@ -55,7 +55,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         'ORDER BY {key_column} ASC LIMIT 1' % AckStatus.unack
     )
     _SQL_MARK_ACK_UPDATE = (
-        'UPDATE {table_name} SET status = ?' ' WHERE {key_column} = ?'
+        'UPDATE {table_name} SET status = ? WHERE {key_column} = ?'
     )
     _SQL_SELECT_WHERE = (
         'SELECT {key_column}, data, timestamp FROM {table_name}'
@@ -79,7 +79,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         unack_count = self.unack_count()
         if unack_count:
             log.warning("resume %d unack tasks", unack_count)
-        sql = 'UPDATE {} set status = ?' ' WHERE status = ?'.format(
+        sql = 'UPDATE {} set status = ? WHERE status = ?'.format(
             self._table_name
         )
         return sql, (
@@ -101,14 +101,14 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         self.total = self._count()
 
     def _count(self):
-        sql = 'SELECT COUNT({}) FROM {}' ' WHERE status < ?'.format(
+        sql = 'SELECT COUNT({}) FROM {} WHERE status < ?'.format(
             self._key_column, self._table_name
         )
         row = self._getter.execute(sql, (AckStatus.unack,)).fetchone()
         return row[0] if row else 0
 
     def _ack_count_via_status(self, status):
-        sql = 'SELECT COUNT({}) FROM {}' ' WHERE status = ?'.format(
+        sql = 'SELECT COUNT({}) FROM {} WHERE status = ?'.format(
             self._key_column, self._table_name
         )
         row = self._getter.execute(sql, (status,)).fetchone()

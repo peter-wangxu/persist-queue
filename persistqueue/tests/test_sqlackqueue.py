@@ -372,17 +372,17 @@ class SQLite3QueueInMemory(SQLite3AckQueueTest):
 
     def test_multiple_consumers(self):
         self.skipTest(
-            'Skipped due to occasional crash during ' 'multithreading mode.'
+            'Skipped due to occasional crash during multithreading mode.'
         )
 
     def test_multi_threaded_multi_producer(self):
         self.skipTest(
-            'Skipped due to occasional crash during ' 'multithreading mode.'
+            'Skipped due to occasional crash during multithreading mode.'
         )
 
     def test_multi_threaded_parallel(self):
         self.skipTest(
-            'Skipped due to occasional crash during ' 'multithreading mode.'
+            'Skipped due to occasional crash during multithreading mode.'
         )
 
     def test_task_done_with_restart(self):
