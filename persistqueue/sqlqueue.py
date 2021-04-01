@@ -109,7 +109,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         if id is not None:
             _id = id
         if _id is None:
-            raise ValueError("Provide an id or raw item with id")
+            raise ValueError("Provide an id or raw item")
         obj = self._serializer.dumps(item)
         self._update(_id, obj)
         return _id

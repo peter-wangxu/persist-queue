@@ -159,30 +159,35 @@ class SQLiteBase(object):
         return sql, (key,)
 
     def _select(self, *args, **kwargs):
+        start_key = self._start_key()
         op = kwargs.get('op', None)
         column = kwargs.get('column', None)
         next_in_order = kwargs.get('next_in_order', False)
-        rowid = kwargs.get('rowid') if kwargs.get('rowid', None) else 0
-        if not next_in_order and rowid > 0:
+        rowid = kwargs.get('rowid') if kwargs.get('rowid', None) else start_key
+        if not next_in_order and rowid != start_key:
             # Get the record by the id
             result = self._getter.execute(
                 self._sql_select_id(rowid), args
             ).fetchone()
         elif op and column:
             # Get the next record with criteria
-            rowid = rowid if next_in_order else 0
+            rowid = rowid if next_in_order else start_key
             result = self._getter.execute(
                 self._sql_select_where(rowid, op, column), args
             ).fetchone()
         else:
             # Get the next record
-            rowid = rowid if next_in_order else 0
+            rowid = rowid if next_in_order else start_key
             result = self._getter.execute(
                 self._sql_select(rowid), args
             ).fetchone()
-        if next_in_order and rowid > 0 and (not result or len(result) == 0):
+        if (
+            next_in_order
+            and rowid != start_key
+            and (not result or len(result) == 0)
+        ):
             # sqlackqueue: if we're at the end, start over - loop incremental
-            kwargs['rowid'] = 0
+            kwargs['rowid'] = start_key
             result = self._select(args=args, kwargs=kwargs)
         return result
 
@@ -192,6 +197,12 @@ class SQLiteBase(object):
         )
         row = self._getter.execute(sql).fetchone()
         return row[0] if row else 0
+
+    def _start_key(self):
+        if self._TABLE_NAME == 'ack_filo_queue':
+            return 9223372036854775807  # maxsize
+        else:
+            return 0
 
     def _task_done(self):
         """Only required if auto-commit is set as False."""
