@@ -259,12 +259,14 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             self.total += 1
         return _id
 
-    def update(self, item, id):
-        _id = self._find_item_id(id, search=False)
-        if _id is None:
-            raise ValueError("'id' required")
+    def update(self, item, id=None):
         if isinstance(item, dict) and "pqid" in item:
+            _id = item.get("pqid")
             item = item.get("data")
+        if id is not None:
+            _id = id
+        if _id is None:
+            raise ValueError("Provide an id or raw item")
         obj = self._serializer.dumps(item)
         self._update(_id, obj)
         return _id

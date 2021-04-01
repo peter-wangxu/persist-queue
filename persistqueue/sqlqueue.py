@@ -44,6 +44,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         'SELECT {key_column}, data, timestamp FROM {table_name} WHERE'
         ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
     )
+    _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
 
     def put(self, item):
         obj = self._serializer.dumps(item)
@@ -100,6 +101,18 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                     else:
                         return item
             return None
+
+    def update(self, item, id=None):
+        if isinstance(item, dict) and "pqid" in item:
+            _id = item.get("pqid")
+            item = item.get("data")
+        if id is not None:
+            _id = id
+        if _id is None:
+            raise ValueError("Provide an id or raw item with id")
+        obj = self._serializer.dumps(item)
+        self._update(_id, obj)
+        return _id
 
     def get(self, block=True, timeout=None, id=None, raw=False):
         if isinstance(id, dict) and "pqid" in id:

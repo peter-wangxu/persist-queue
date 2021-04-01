@@ -271,6 +271,13 @@ class SQLite3QueueTest(unittest.TestCase):
         self.assertEqual(len(d), 3)
         self.assertEqual(d[1].get("data"), "val2")
 
+    def test_update(self):
+        q = SQLiteQueue(path=self.path)
+        qid = q.put("val1")
+        q.update(item="val2", id=qid)
+        item = q.get(id=qid)
+        self.assertEqual(item, "val2")
+
 
 class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
     def setUp(self):
