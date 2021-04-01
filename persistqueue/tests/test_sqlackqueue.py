@@ -331,7 +331,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         # size should be 1 after nack
         self.assertEqual(q.qsize(), 1)
 
-    def test_ack_ractive_size(self):
+    def test_ack_active_size(self):
         q = SQLiteAckQueue(path=self.path)
         q.put("val1")
         item = q.get(raw=True)

@@ -45,7 +45,6 @@ jobs:
       - image: circleci/python:3.5.9
     environment:
       - TOXENV: py35
-
     steps: *common_steps
 
   py36:

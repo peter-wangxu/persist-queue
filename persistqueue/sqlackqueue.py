@@ -206,15 +206,29 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             for key, value in self._unack_cache.items():
                 if value is item:
                     return key
-        if isinstance(item, int):
-            return item
-        elif search:
             log.warning("Can't find item in unack cache.")
+        elif isinstance(item, int) or (
+            isinstance(item, str) and item.isnumeric()
+        ):
+            return int(item)
         return None
 
-    def ack(self, item):
+    def _check_id(self, item, id):
+        if id is not None and item is not None:
+            raise ValueError("Specify an id or an item, not both.")
+        elif id is None and item is None:
+            raise ValueError("Specify an id or an item.")
+        elif id is not None:
+            search = False
+            item = id
+        else:
+            search = True
+        return item, search
+
+    def ack(self, item=None, id=None):
+        item, search = self._check_id(item, id)
         with self.action_lock:
-            _id = self._find_item_id(item)
+            _id = self._find_item_id(item, search)
             if _id is None:
                 return None
             self._mark_ack_status(_id, AckStatus.acked)
@@ -222,9 +236,10 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                 self._unack_cache.pop(_id)
         return _id
 
-    def ack_failed(self, item):
+    def ack_failed(self, item=None, id=None):
+        item, search = self._check_id(item, id)
         with self.action_lock:
-            _id = self._find_item_id(item)
+            _id = self._find_item_id(item, search)
             if _id is None:
                 return None
             self._mark_ack_status(_id, AckStatus.ack_failed)
@@ -232,9 +247,10 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                 self._unack_cache.pop(_id)
         return _id
 
-    def nack(self, item):
+    def nack(self, item=None, id=None):
+        item, search = self._check_id(item, id)
         with self.action_lock:
-            _id = self._find_item_id(item)
+            _id = self._find_item_id(item, search)
             if _id is None:
                 return None
             self._mark_ack_status(_id, AckStatus.ready)
@@ -243,7 +259,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             self.total += 1
         return _id
 
-    def update(self, id, item):
+    def update(self, item, id):
         _id = self._find_item_id(id, search=False)
         if _id is None:
             raise ValueError("'id' required")
