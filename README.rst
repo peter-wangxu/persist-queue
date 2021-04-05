@@ -197,12 +197,16 @@ Example usage of SQLite3 based ``SQLiteAckQueue``/``UniqueAckQ``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The core functions:
 
-- ``get``: get from queue and mark item as unack
-- ``ack``: mark item as acked
-- ``nack``: there might be something wrong with current consumer, so mark item as ready and new consumer will get it
-- ``ack_failed``: there might be something wrong during process, so just mark item as failed.
-- ``clear_acked_data``: perform a sql delete agaist sqlite, it remove the latest 1000 items whose status is ``AckStatus.acked`` (note: this does not shrink the file size on disk)
+- ``put``: add item to the queue. Returns ``id``
+- ``get``: get item from queue and mark as unack.  Returns ``item``, Optional paramaters (``block``, ``timeout``, ``id``, ``next_in_order``, ``raw``)
+- ``update``: update an item. Returns ``id``, Paramaters (``item``), Optional parameter if item not in raw format (``id``)
+- ``ack``: mark item as acked. Returns ``id``, Parameters (``item`` or ``id``)
+- ``nack``: there might be something wrong with current consumer, so mark item as ready and new consumer will get it.  Returns ``id``, Parameters (``item`` or ``id``)
+- ``ack_failed``: there might be something wrong during process, so just mark item as failed. Returns ``id``, Parameters (``item`` or ``id``)
+- ``clear_acked_data``: perform a sql delete agaist sqlite. It removes 1000 items, while keeping 1000 of the most recent, whose status is ``AckStatus.acked`` (note: this does not shrink the file size on disk) Optional paramters (``max_delete``, ``keep_latest``, ``clear_ack_failed``)
 - ``shrink_disk_usage`` perform a ``VACUUM`` against the sqlite, and rebuild the database file, this usually takes long time and frees a lot of disk space after ``clear_acked_data``
+- ``queue``: returns the database contents as a Python List[Dict]
+- ``active_size``: The active size changes when an item is added (put) and completed (ack/ack_failed) unlike ``qsize`` which changes when an item is pulled (get) or returned (nack).
 
 .. code-block:: python
 
@@ -215,6 +219,40 @@ The core functions:
    >>> ackq.nack(item) # Else mark item as `nack` so that it can be proceeded again by any worker
    >>> ackq.ack_failed(item) # Or else mark item as `ack_failed` to discard this item
 
+Paramaters:
+
+- ``clear_acked_data``
+    - ``max_delete`` (defaults to 1000): This is the LIMIT.  How many items to delete.
+    - ``keep_latest`` (defaults to 1000): This is the OFFSET.  How many recent items to keep
+    - ``clear_ack_failed`` (defaults to False): Clears the ack_failed as the original only clears ack.
+    
+- ``get``
+    - ``raw`` (defaults to False): Returns the metadata along with the record, which includes the id (``pqid``) and timestamp.  On the SQLiteAckQueue, the raw results can be ack, nack, ack_failed similar to the normal return.  
+    -  ``id`` (defaults to None): Accepts an `id` or a raw item containing ``pqid``.  Will select the item based on the row id.
+    -  ``next_in_order`` (defaults to False): Requires the ``id`` attribute.  This option tells the SQLiteAckQueue/UniqueAckQ to get the next item based on  ``id``, not the first available.  This allows the user to get, nack, get, nack and progress down the queue, instead of continuing to get the same nack'd item over again.
+    
+``raw`` example:
+
+.. code-block:: python
+
+   >>> q.put('val1')
+   >>> d = q.get(raw=True)
+   >>> print(d)
+   >>> {'pqid': 1, 'data': 'val1', 'timestamp': 1616719225.012912}
+   >>> q.ack(d)
+
+``next_in_order`` example:
+
+.. code-block:: python
+
+   >>> q.put("val1")
+   >>> q.put("val2")
+   >>> q.put("val3")
+   >>> item = q.get()
+   >>> id = q.nack(item)
+   >>> item = q.get(id=id, next_in_order=True)
+   >>> print(item)
+   >>> val2
 
 
 Note:
