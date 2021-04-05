@@ -223,8 +223,8 @@ Paramaters:
 
 - ``clear_acked_data``
     - ``max_delete`` (defaults to 1000): This is the LIMIT.  How many items to delete.
-    - ``keep_latest`` (defaults to 1000): This is the OFFSET.  How many recent items to keep
-    - ``clear_ack_failed`` (defaults to False): Clears the ack_failed as the original only clears ack.
+    - ``keep_latest`` (defaults to 1000): This is the OFFSET.  How many recent items to keep.
+    - ``clear_ack_failed`` (defaults to False): Clears the ``AckStatus.ack_failed`` in addition to the ``AckStatus.ack``.
     
 - ``get``
     - ``raw`` (defaults to False): Returns the metadata along with the record, which includes the id (``pqid``) and timestamp.  On the SQLiteAckQueue, the raw results can be ack, nack, ack_failed similar to the normal return.  
