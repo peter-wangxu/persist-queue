@@ -60,14 +60,16 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         if auto_resume:
             self.resume_unack_tasks()
 
-    @sqlbase.with_conditional_transaction
     def resume_unack_tasks(self):
         unack_count = self.unack_count()
         if unack_count:
             log.warning("resume %d unack tasks", unack_count)
         sql = 'UPDATE {} set status = ?' \
               ' WHERE status = ?'.format(self._table_name)
-        return sql, (AckStatus.ready, AckStatus.unack,)
+        with self.tran_lock:
+            with self._putter as tran:
+                tran.execute(sql, (AckStatus.ready, AckStatus.unack,))
+            self.total = self._count()
 
     def put(self, item):
         obj = self._serializer.dumps(item)
