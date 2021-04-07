@@ -28,6 +28,7 @@ class FileQueueBench(object):
 
     def __init__(self, prefix=None):
         self.path = prefix
+
     @time_it
     def benchmark_file_write(self):
         """Writing <BENCHMARK_COUNT> items."""

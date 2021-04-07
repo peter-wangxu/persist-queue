@@ -1,7 +1,7 @@
 # coding=utf-8
 __author__ = 'Peter Wang'
 __license__ = 'BSD'
-__version__ = '0.5.1'
+__version__ = '0.6.0'
 
 from .exceptions import Empty, Full  # noqa
 from .queue import Queue  # noqa

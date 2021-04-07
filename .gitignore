@@ -90,3 +90,6 @@ ENV/
 
 # IDE specific folders
 .idea/
+
+# MacOS
+.DS_Store

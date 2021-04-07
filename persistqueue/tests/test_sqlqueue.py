@@ -234,13 +234,49 @@ class SQLite3QueueTest(unittest.TestCase):
                 e=[1]
             ))
         q.put(x)
-        self.assertEquals(q.get(), x)
+        self.assertEqual(q.get(), x)
 
     def test_put_0(self):
         q = SQLiteQueue(path=self.path)
         q.put(0)
         d = q.get(block=False)
         self.assertIsNotNone(d)
+
+    def test_get_id(self):
+        q = SQLiteQueue(path=self.path)
+        q.put("val1")
+        val2_id = q.put("val2")
+        q.put("val3")
+        item = q.get(id=val2_id)
+        # item id should be 2
+        self.assertEqual(val2_id, 2)
+        # item should get val2
+        self.assertEqual(item, 'val2')
+
+    def test_get_raw(self):
+        q = SQLiteQueue(path=self.path)
+        q.put("val1")
+        item = q.get(raw=True)
+        # item should get val2
+        self.assertEqual(True, "pqid" in item)
+        self.assertEqual(item.get("data"), 'val1')
+
+    def test_queue(self):
+        q = SQLiteQueue(path=self.path)
+        q.put("val1")
+        q.put("val2")
+        q.put("val3")
+        # queue should get the three items
+        d = q.queue()
+        self.assertEqual(len(d), 3)
+        self.assertEqual(d[1].get("data"), "val2")
+
+    def test_update(self):
+        q = SQLiteQueue(path=self.path)
+        qid = q.put("val1")
+        q.update(item="val2", id=qid)
+        item = q.get(id=qid)
+        self.assertEqual(item, "val2")
 
 
 class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
@@ -265,6 +301,8 @@ class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
 
 
 class SQLite3QueueInMemory(SQLite3QueueTest):
+    skipstr = 'Skipped due to occasional crash during multithreading mode.'
+
     def setUp(self):
         self.path = ":memory:"
         self.auto_commit = True
@@ -276,16 +314,13 @@ class SQLite3QueueInMemory(SQLite3QueueTest):
         self.skipTest('Memory based sqlite is not persistent.')
 
     def test_multiple_consumers(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
+        self.skipTest(self.skipstr)
 
     def test_multi_threaded_multi_producer(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
+        self.skipTest(self.skipstr)
 
     def test_multi_threaded_parallel(self):
-        self.skipTest('Skipped due to occasional crash during '
-                      'multithreading mode.')
+        self.skipTest(self.skipstr)
 
     def test_task_done_with_restart(self):
         self.skipTest('Skipped due to not persistent.')
