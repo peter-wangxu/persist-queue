@@ -258,6 +258,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return _id
 
     def update(self, item, id=None):
+        _id = None
         if isinstance(item, dict) and "pqid" in item:
             _id = item.get("pqid")
             item = item.get("data")
