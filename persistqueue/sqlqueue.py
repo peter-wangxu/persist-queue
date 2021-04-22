@@ -149,6 +149,9 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                 serialized = self._pop(raw=raw, rowid=rowid)
         return serialized
 
+    def get_nowait(self, id=None, raw=False):
+        return self.get(block=False, id=id, raw=raw)
+
     def task_done(self):
         """Persist the current state if auto_commit=False."""
         if not self.auto_commit:
