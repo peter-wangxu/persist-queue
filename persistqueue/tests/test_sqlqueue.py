@@ -29,6 +29,7 @@ class SQLite3QueueTest(unittest.TestCase):
         d = q.get()
         self.assertEqual('first', d)
         self.assertRaises(Empty, q.get, block=False)
+        self.assertRaises(Empty, q.get_nowait)
 
         # assert with timeout
         self.assertRaises(Empty, q.get, block=True, timeout=1.0)
