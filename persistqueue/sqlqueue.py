@@ -46,12 +46,16 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     )
     _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
 
-    def put(self, item):
+    def put(self, item, block=True):
+        # block kwarg is noop and only here to align with python's queue
         obj = self._serializer.dumps(item)
         _id = self._insert_into(obj, _time.time())
         self.total += 1
         self.put_event.set()
         return _id
+
+    def put_nowait(self, item):
+        return self.put(item, block=False)
 
     def _init(self):
         super(SQLiteQueue, self)._init()
