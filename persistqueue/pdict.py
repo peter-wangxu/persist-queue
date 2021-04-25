@@ -62,6 +62,12 @@ class PDict(sqlbase.SQLiteBase, dict):
         else:
             raise KeyError('Key: {} not exists.'.format(item))
 
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     def __delitem__(self, key):
         self._delete(key)
 

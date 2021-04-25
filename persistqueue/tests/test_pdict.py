@@ -34,6 +34,9 @@ class PDictTest(unittest.TestCase):
         self.assertEqual(pd['key_a'], 'value_a')
         self.assertTrue('key_a' in pd)
         self.assertFalse('key_b' in pd)
+        self.assertEqual(pd.get('key_a'), 'value_a')
+        self.assertEqual(pd.get('key_b'), None)
+        self.assertEqual(pd.get('key_b', 'absent'), 'absent')
         self.assertRaises(KeyError, lambda: pd['key_b'])
         pd['key_b'] = 'value_b'
         self.assertEqual(pd['key_a'], 'value_a')
@@ -45,6 +48,8 @@ class PDictTest(unittest.TestCase):
         pd['key_b'] = 'value_b'
         self.assertEqual(pd['key_a'], 'value_a')
         self.assertEqual(pd['key_b'], 'value_b')
+        self.assertEqual(pd.get('key_a'), 'value_a')
+        self.assertEqual(pd.get('key_b', 'absent'), 'value_b')
         pd['key_a'] = 'value_aaaaaa'
         self.assertEqual(pd['key_a'], 'value_aaaaaa')
         self.assertEqual(pd['key_b'], 'value_b')
