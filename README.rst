@@ -225,12 +225,12 @@ Paramaters:
     - ``max_delete`` (defaults to 1000): This is the LIMIT.  How many items to delete.
     - ``keep_latest`` (defaults to 1000): This is the OFFSET.  How many recent items to keep.
     - ``clear_ack_failed`` (defaults to False): Clears the ``AckStatus.ack_failed`` in addition to the ``AckStatus.ack``.
-    
+
 - ``get``
-    - ``raw`` (defaults to False): Returns the metadata along with the record, which includes the id (``pqid``) and timestamp.  On the SQLiteAckQueue, the raw results can be ack, nack, ack_failed similar to the normal return.  
+    - ``raw`` (defaults to False): Returns the metadata along with the record, which includes the id (``pqid``) and timestamp.  On the SQLiteAckQueue, the raw results can be ack, nack, ack_failed similar to the normal return.
     -  ``id`` (defaults to None): Accepts an `id` or a raw item containing ``pqid``.  Will select the item based on the row id.
     -  ``next_in_order`` (defaults to False): Requires the ``id`` attribute.  This option tells the SQLiteAckQueue/UniqueAckQ to get the next item based on  ``id``, not the first available.  This allows the user to get, nack, get, nack and progress down the queue, instead of continuing to get the same nack'd item over again.
-    
+
 ``raw`` example:
 
 .. code-block:: python
@@ -441,9 +441,9 @@ Serialization via msgpack/json
 .. code-block:: python
 
     >>> from persistqueue
-    >>> q = persistqueue.Queue('mypath', persistqueue.serializers.msgpack)
+    >>> q = persistqueue.Queue('mypath', serializer=persistqueue.serializers.msgpack)
     >>> # via json
-    >>> # q = Queue('mypath', persistqueue.serializers.json)
+    >>> # q = Queue('mypath', serializer=persistqueue.serializers.json)
     >>> q.get()
     'b'
     >>> q.task_done()
