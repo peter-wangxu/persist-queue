@@ -32,7 +32,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     _TABLE_NAME = 'ack_queue'
     _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
-    _MAX_ACKED_LENGTH = 1000  # depreciated
+    _MAX_ACKED_LENGTH = 1000  # deprecated
     # SQL to create a table
     _SQL_CREATE = (
         'CREATE TABLE IF NOT EXISTS {table_name} ('
@@ -142,7 +142,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             # Added for backward compatibility for
             # those that set the _MAX_ACKED_LENGTH
             print(
-                "_MAX_ACKED_LENGTH has been depreciated.  \
+                "_MAX_ACKED_LENGTH has been deprecated.  \
                     Use clear_acked_data(keep_latest=1000, max_delete=1000)"
             )
             keep_latest = self._MAX_ACKED_LENGTH
