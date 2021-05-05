@@ -145,7 +145,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                 "_MAX_ACKED_LENGTH has been depreciated.  \
                     Use clear_acked_data(keep_latest=1000, max_delete=1000)"
             )
-            max_delete = self._MAX_ACKED_LENGTH
+            keep_latest = self._MAX_ACKED_LENGTH
         if clear_ack_failed:
             acked_clear_all = 'OR status = %s' % AckStatus.ack_failed
         if max_delete and max_delete > 0:
