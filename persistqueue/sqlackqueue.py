@@ -190,7 +190,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                 self._unack_cache[row[0]] = item
                 self.total -= 1
                 if raw:
-                    return {'pqid': row[0], 'data': item, 'tiemstamp': row[2]}
+                    return {'pqid': row[0], 'data': item, 'timestamp': row[2]}
                 else:
                     return item
             return None

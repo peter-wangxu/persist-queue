@@ -84,7 +84,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                         return {
                             'pqid': row[0],
                             'data': item,
-                            'tiemstamp': row[2],
+                            'timestamp': row[2],
                         }
                     else:
                         return item
@@ -100,7 +100,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                         return {
                             'pqid': row[0],
                             'data': item,
-                            'tiemstamp': row[2],
+                            'timestamp': row[2],
                         }
                     else:
                         return item
