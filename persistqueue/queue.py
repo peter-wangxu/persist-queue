@@ -105,6 +105,8 @@ class Queue(object):
                                 "dft_dir": tempdir,
                                 "queue_path": self.path,
                                 "new_path": self.tempdir})
+            os.remove(tempdir)
+
         self.info = self._loadinfo()
         # truncate head case it contains garbage
         hnum, hcnt, hoffset = self.info['head']
