@@ -471,6 +471,7 @@ class FILOSQLite3AckQueueTest(SQLite3AckQueueTest):
         # item should get val2
         self.assertEqual(item, 'val3')
 
+
 # Note
 # We have to be carefull to avoid test cases from SQLite3AckQueueTest having
 # duplicate values in their q.put()'s. This could block the test indefinitely
