@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from threading import Thread
+import uuid
 
 from persistqueue.sqlackqueue import (
     SQLiteAckQueue,
@@ -89,7 +90,9 @@ class SQLite3AckQueueTest(unittest.TestCase):
                 else:
                     self.assertRaises(Empty, q.get, block=False)
             else:
-                q.put('var%d' % random.getrandbits(16))
+                # UniqueQueue will block at get() if this is not unique
+                # uuid.uuid4() should be unique
+                q.put('var%d' % uuid.uuid4())
                 n += 1
 
     def test_multi_threaded_parallel(self):
@@ -468,8 +471,9 @@ class FILOSQLite3AckQueueTest(SQLite3AckQueueTest):
         # item should get val2
         self.assertEqual(item, 'val3')
 
-
-
+# Note
+# We have to be carefull to avoid test cases from SQLite3AckQueueTest having
+# duplicate values in their q.put()'s. This could block the test indefinitely
 class SQLite3UniqueAckQueueTest(SQLite3AckQueueTest):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='sqlackqueue')
