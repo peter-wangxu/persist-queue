@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from threading import Thread
+import uuid
 
 from persistqueue.sqlackqueue import (
     SQLiteAckQueue,
@@ -19,12 +20,13 @@ class SQLite3AckQueueTest(unittest.TestCase):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='sqlackqueue')
         self.auto_commit = True
+        self.queue_class = SQLiteAckQueue
 
     def tearDown(self):
         shutil.rmtree(self.path, ignore_errors=True)
 
     def test_raise_empty(self):
-        q = SQLiteAckQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
 
         q.put('first')
         d = q.get()
@@ -37,7 +39,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertRaises(ValueError, q.get, block=True, timeout=-1.0)
 
     def test_empty(self):
-        q = SQLiteAckQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
         self.assertEqual(q.empty(), True)
 
         q.put('first')
@@ -49,23 +51,23 @@ class SQLite3AckQueueTest(unittest.TestCase):
     def test_open_close_single(self):
         """Write 1 item, close, reopen checking if same item is there"""
 
-        q = SQLiteAckQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
         q.put(b'var1')
         del q
-        q = SQLiteAckQueue(self.path)
+        q = self.queue_class(self.path)
         self.assertEqual(1, q.qsize())
         self.assertEqual(b'var1', q.get())
 
     def test_open_close_1000(self):
         """Write 1000 items, close, reopen checking if all items are there"""
 
-        q = SQLiteAckQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
         for i in range(1000):
             q.put('var%d' % i)
 
         self.assertEqual(1000, q.qsize())
         del q
-        q = SQLiteAckQueue(self.path)
+        q = self.queue_class(self.path)
         self.assertEqual(1000, q.qsize())
         for i in range(1000):
             data = q.get()
@@ -78,7 +80,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
     def test_random_read_write(self):
         """Test random read/write"""
 
-        q = SQLiteAckQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
         n = 0
         for _ in range(1000):
             if random.random() < 0.5:
@@ -88,7 +90,9 @@ class SQLite3AckQueueTest(unittest.TestCase):
                 else:
                     self.assertRaises(Empty, q.get, block=False)
             else:
-                q.put('var%d' % random.getrandbits(16))
+                # UniqueQueue will block at get() if this is not unique
+                # uuid.uuid4() should be unique
+                q.put('var%d' % uuid.uuid4())
                 n += 1
 
     def test_multi_threaded_parallel(self):
@@ -96,7 +100,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
 
         # self.skipTest("Not supported multi-thread.")
 
-        m_queue = SQLiteAckQueue(
+        m_queue = self.queue_class(
             path=self.path, multithreading=True, auto_commit=self.auto_commit
         )
 
@@ -121,7 +125,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
 
     def test_multi_threaded_multi_producer(self):
         """Test sqlqueue can be used by multiple producers."""
-        queue = SQLiteAckQueue(
+        queue = self.queue_class(
             path=self.path, multithreading=True, auto_commit=self.auto_commit
         )
 
@@ -150,7 +154,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
     def test_multiple_consumers(self):
         """Test sqlqueue can be used by multiple consumers."""
 
-        queue = SQLiteAckQueue(
+        queue = self.queue_class(
             path=self.path, multithreading=True, auto_commit=self.auto_commit
         )
 
@@ -189,19 +193,19 @@ class SQLite3AckQueueTest(unittest.TestCase):
 
     def test_protocol_1(self):
         shutil.rmtree(self.path, ignore_errors=True)
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         self.assertEqual(
             q._serializer.protocol, 2 if sys.version_info[0] == 2 else 4
         )
 
     def test_protocol_2(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         self.assertEqual(
             q._serializer.protocol, 2 if sys.version_info[0] == 2 else 4
         )
 
     def test_ack_and_clear(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         ret_list = []
         for _ in range(100):
             q.put("val%s" % _)
@@ -215,7 +219,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         q.shrink_disk_usage()
 
     def test_ack_unknown_item(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         val1 = q.get()
         q.ack("val2")
@@ -227,7 +231,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(q.unack_count(), 0)
 
     def test_resume_unack(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         val1 = q.get()
         self.assertEqual(q.empty(), True)
@@ -236,7 +240,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(q.ready_count(), 0)
         del q
 
-        q = SQLiteAckQueue(path=self.path, auto_resume=False)
+        q = self.queue_class(path=self.path, auto_resume=False)
         self.assertEqual(q.empty(), True)
         self.assertEqual(q.qsize(), 0)
         self.assertEqual(q.unack_count(), 1)
@@ -249,7 +253,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(val1, q.get())
         del q
 
-        q = SQLiteAckQueue(path=self.path, auto_resume=True)
+        q = self.queue_class(path=self.path, auto_resume=True)
         self.assertEqual(q.empty(), False)
         self.assertEqual(q.qsize(), 1)
         self.assertEqual(q.unack_count(), 0)
@@ -257,7 +261,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(val1, q.get())
 
     def test_ack_unack_ack_failed(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         q.put("val2")
         q.put("val3")
@@ -291,13 +295,13 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(q.ready_count(), 0)
 
     def test_put_0(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put(0)
         d = q.get(block=False)
         self.assertIsNotNone(d)
 
     def test_get_id(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         val2_id = q.put("val2")
         q.put("val3")
@@ -308,7 +312,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(item, 'val2')
 
     def test_get_next_in_order(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         val1_id = q.put("val1")
         q.put("val2")
         q.put("val3")
@@ -319,7 +323,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(item, 'val2')
 
     def test_get_raw(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         item = q.get(raw=True)
         # item should get val2
@@ -327,7 +331,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(item.get("data"), 'val1')
 
     def test_nack_raw(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         item = q.get(raw=True)
         # nack a raw return
@@ -336,7 +340,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(q.qsize(), 1)
 
     def test_ack_active_size(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         item = q.get(raw=True)
         # active_size should be 1 as it hasn't been acked
@@ -346,7 +350,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(q.active_size(), 0)
 
     def test_queue(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         q.put("val2")
         q.put("val3")
@@ -356,7 +360,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(d[1].get("data"), "val2")
 
     def test_update(self):
-        q = SQLiteAckQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         qid = q.put("val1")
         q.update(id=qid, item="val2")
         item = q.get(id=qid)
@@ -367,6 +371,7 @@ class SQLite3QueueInMemory(SQLite3AckQueueTest):
     def setUp(self):
         self.path = ":memory:"
         self.auto_commit = True
+        self.queue_class = SQLiteAckQueue
 
     def test_open_close_1000(self):
         self.skipTest('Memory based sqlite is not persistent.')
@@ -399,10 +404,11 @@ class SQLite3QueueInMemory(SQLite3AckQueueTest):
         self.skipTest('Memory based sqlite is not persistent.')
 
 
-class FILOSQLite3AckQueueTest(unittest.TestCase):
+class FILOSQLite3AckQueueTest(SQLite3AckQueueTest):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='filo_sqlackqueue')
         self.auto_commit = True
+        self.queue_class = FILOSQLiteAckQueue
 
     def tearDown(self):
         shutil.rmtree(self.path, ignore_errors=True)
@@ -410,12 +416,12 @@ class FILOSQLite3AckQueueTest(unittest.TestCase):
     def test_open_close_1000(self):
         """Write 1000 items, close, reopen checking if all items are there"""
 
-        q = FILOSQLiteAckQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
         for i in range(1000):
             q.put('var%d' % i)
         self.assertEqual(1000, q.qsize())
         del q
-        q = FILOSQLiteAckQueue(self.path)
+        q = self.queue_class(self.path)
         self.assertEqual(1000, q.qsize())
         for i in range(1000):
             data = q.get()
@@ -425,14 +431,58 @@ class FILOSQLite3AckQueueTest(unittest.TestCase):
         data = q.get()
         self.assertEqual('foobar', data)
 
+    def test_multi_threaded_parallel(self):
+        """Create consumer and producer threads, check parallelism"""
 
-class SQLite3UniqueAckQueueTest(unittest.TestCase):
+        # self.skipTest("Not supported multi-thread.")
+
+        m_queue = self.queue_class(
+            path=self.path, multithreading=True, auto_commit=self.auto_commit
+        )
+
+        def producer():
+            for i in range(1000):
+                m_queue.put('var%d' % i)
+
+        def consumer():
+            # We cannot quarantee what next number will be like in FIFO
+            for _ in range(1000):
+                x = m_queue.get(block=True)
+                self.assertTrue('var' in x)
+
+        c = Thread(target=consumer)
+        c.start()
+        p = Thread(target=producer)
+        p.start()
+        p.join()
+        c.join()
+        self.assertEqual(0, m_queue.size)
+        self.assertEqual(0, len(m_queue))
+        self.assertRaises(Empty, m_queue.get, block=False)
+
+    def test_get_next_in_order(self):
+        q = self.queue_class(path=self.path)
+        val1_id = q.put("val1")
+        q.put("val2")
+        q.put("val3")
+        item = q.get(id=val1_id, next_in_order=True)
+        # item id should be 1
+        self.assertEqual(val1_id, 1)
+        # item should get val2
+        self.assertEqual(item, 'val3')
+
+
+# Note
+# We have to be carefull to avoid test cases from SQLite3AckQueueTest having
+# duplicate values in their q.put()'s. This could block the test indefinitely
+class SQLite3UniqueAckQueueTest(SQLite3AckQueueTest):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='sqlackqueue')
         self.auto_commit = True
+        self.queue_class = UniqueAckQ
 
     def test_add_duplicate_item(self):
-        q = UniqueAckQ(self.path)
+        q = self.queue_class(self.path)
         q.put(1111)
         self.assertEqual(1, q.size)
         # put duplicate item
@@ -443,5 +493,5 @@ class SQLite3UniqueAckQueueTest(unittest.TestCase):
         self.assertEqual(2, q.size)
 
         del q
-        q = UniqueAckQ(self.path)
+        q = self.queue_class(self.path)
         self.assertEqual(2, q.size)

@@ -362,7 +362,7 @@ class FILOSQLiteAckQueue(SQLiteAckQueue):
     _TABLE_NAME = 'ack_filo_queue'
     # SQL to select a record
     _SQL_SELECT = (
-        'SELECT {key_column}, data FROM {table_name} '
+        'SELECT {key_column}, data, timestamp, status FROM {table_name} '
         'WHERE {key_column} < {rowid} and status < %s '
         'ORDER BY {key_column} DESC LIMIT 1' % AckStatus.unack
     )
