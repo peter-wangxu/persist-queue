@@ -17,6 +17,8 @@ class PDict(sqlbase.SQLiteBase, dict):
                    'WHERE {key_column} = ?')
     _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
 
+    _SQL_DELETE = 'DELETE FROM {table_name} WHERE {key_column} {op} ?'
+
     def __init__(self, path, name, multithreading=False):
         # PDict is always auto_commit=True
         super(PDict, self).__init__(path, name=name,

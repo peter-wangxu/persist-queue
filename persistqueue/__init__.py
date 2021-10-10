@@ -9,7 +9,7 @@ from .queue import Queue  # noqa
 try:
     from .pdict import PDict  # noqa
     from .sqlqueue import SQLiteQueue, FIFOSQLiteQueue, FILOSQLiteQueue, \
-        UniqueQ  # noqa
+        UniqueQ, MySQLQueue  # noqa
     from .sqlackqueue import SQLiteAckQueue, UniqueAckQ
 except ImportError:
     import logging

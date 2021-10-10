@@ -6,7 +6,11 @@ A serializer that extends msgpack to specify recommended parameters and adds a
 """
 
 from __future__ import absolute_import
-import msgpack
+try:
+    import msgpack
+except ImportError:
+    pass
+
 import struct
 
 
