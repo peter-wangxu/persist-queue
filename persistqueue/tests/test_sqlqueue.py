@@ -18,12 +18,13 @@ class SQLite3QueueTest(unittest.TestCase):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='sqlqueue')
         self.auto_commit = True
+        self.queue_class = SQLiteQueue
 
     def tearDown(self):
         shutil.rmtree(self.path, ignore_errors=True)
 
     def test_raise_empty(self):
-        q = SQLiteQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
 
         q.put('first')
         d = q.get()
@@ -38,7 +39,7 @@ class SQLite3QueueTest(unittest.TestCase):
         del q
 
     def test_empty(self):
-        q = SQLiteQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
         self.assertEqual(q.empty(), True)
 
         q.put('first')
@@ -50,7 +51,7 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_open_close_single(self):
         """Write 1 item, close, reopen checking if same item is there"""
 
-        q = SQLiteQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
         q.put(b'var1')
         del q
         q = SQLiteQueue(self.path)
@@ -60,7 +61,7 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_open_close_1000(self):
         """Write 1000 items, close, reopen checking if all items are there"""
 
-        q = SQLiteQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
         for i in range(1000):
             q.put('var%d' % i)
 
@@ -79,7 +80,7 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_random_read_write(self):
         """Test random read/write"""
 
-        q = SQLiteQueue(self.path, auto_commit=self.auto_commit)
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
         n = 0
         for _ in range(1000):
             if random.random() < 0.5:
@@ -121,7 +122,7 @@ class SQLite3QueueTest(unittest.TestCase):
 
     def test_multi_threaded_multi_producer(self):
         """Test sqlqueue can be used by multiple producers."""
-        queue = SQLiteQueue(path=self.path, multithreading=True,
+        queue = self.queue_class(path=self.path, multithreading=True,
                             auto_commit=self.auto_commit)
 
         def producer(seq):
@@ -149,7 +150,7 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_multiple_consumers(self):
         """Test sqlqueue can be used by multiple consumers."""
 
-        queue = SQLiteQueue(path=self.path, multithreading=True,
+        queue = self.queue_class(path=self.path, multithreading=True,
                             auto_commit=self.auto_commit)
 
         def producer():
@@ -189,7 +190,7 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_task_done_with_restart(self):
         """Test that items are not deleted before task_done."""
 
-        q = SQLiteQueue(path=self.path, auto_commit=False)
+        q = self.queue_class(path=self.path, auto_commit=False)
 
         for i in range(1, 11):
             q.put(i)
@@ -214,17 +215,17 @@ class SQLite3QueueTest(unittest.TestCase):
 
     def test_protocol_1(self):
         shutil.rmtree(self.path, ignore_errors=True)
-        q = SQLiteQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         self.assertEqual(q._serializer.protocol,
                          2 if sys.version_info[0] == 2 else 4)
 
     def test_protocol_2(self):
-        q = SQLiteQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         self.assertEqual(q._serializer.protocol,
                          2 if sys.version_info[0] == 2 else 4)
 
     def test_json_serializer(self):
-        q = SQLiteQueue(
+        q = self.queue_class(
             path=self.path,
             serializer=serializers_json)
         x = dict(
@@ -238,13 +239,13 @@ class SQLite3QueueTest(unittest.TestCase):
         self.assertEqual(q.get(), x)
 
     def test_put_0(self):
-        q = SQLiteQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put(0)
         d = q.get(block=False)
         self.assertIsNotNone(d)
 
     def test_get_id(self):
-        q = SQLiteQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         val2_id = q.put("val2")
         q.put("val3")
@@ -255,7 +256,7 @@ class SQLite3QueueTest(unittest.TestCase):
         self.assertEqual(item, 'val2')
 
     def test_get_raw(self):
-        q = SQLiteQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         item = q.get(raw=True)
         # item should get val2
@@ -263,7 +264,7 @@ class SQLite3QueueTest(unittest.TestCase):
         self.assertEqual(item.get("data"), 'val1')
 
     def test_queue(self):
-        q = SQLiteQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         q.put("val1")
         q.put("val2")
         q.put("val3")
@@ -273,7 +274,7 @@ class SQLite3QueueTest(unittest.TestCase):
         self.assertEqual(d[1].get("data"), "val2")
 
     def test_update(self):
-        q = SQLiteQueue(path=self.path)
+        q = self.queue_class(path=self.path)
         qid = q.put("val1")
         q.update(item="val2", id=qid)
         item = q.get(id=qid)
@@ -458,3 +459,16 @@ class SQLite3UniqueQueueTest(unittest.TestCase):
         self.assertEqual(queue.total, 1)
         queue.put({"bar": 2, "foo": 1})
         self.assertEqual(queue.total, 1)
+
+
+
+class MySQLQueueTest(SQLite3QueueTest):
+    def test_1(self):
+        q = MySQLQueue("127.0.0.1", "root", "123456", "testqueu", 33306)
+        q.put("peter")
+        data = q.get()
+        self.assertEqual(data, "peter")
+
+        q.put("yuzhi")
+        data = q.get()
+        self.assertEqual(data, "yuzhi")

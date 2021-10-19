@@ -18,5 +18,5 @@ except ImportError:
     log.info("No sqlite3 module found, sqlite3 based queues are not available")
 
 __all__ = ["Queue", "SQLiteQueue", "FIFOSQLiteQueue", "FILOSQLiteQueue",
-           "UniqueQ", "PDict", "SQLiteAckQueue", "UniqueAckQ", "Empty", "Full",
-           "__author__", "__license__", "__version__"]
+           "UniqueQ", "PDict", "SQLiteAckQueue", "UniqueAckQ", "MySQLQueue",
+           "Empty", "Full", "__author__", "__license__", "__version__"]
