@@ -188,7 +188,7 @@ class SQLiteBase(object):
         ):
             # sqlackqueue: if we're at the end, start over - loop incremental
             kwargs['rowid'] = start_key
-            result = self._select(args=args, kwargs=kwargs)
+            result = self._select(*args, **kwargs)
         return result
 
     def _count(self):
