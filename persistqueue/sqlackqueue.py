@@ -41,7 +41,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     )
     # SQL to index the status
     _SQL_INDEX = (
-        'CREATE INDEX status_idx ON {table_name} (status)'
+        'CREATE INDEX IF NOT EXISTS status_idx ON {table_name} (status)'
     )
     # SQL to insert a record
     _SQL_INSERT = (
