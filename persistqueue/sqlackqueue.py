@@ -39,6 +39,10 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
         'data BLOB, timestamp FLOAT, status INTEGER)'
     )
+    # SQL to index the status
+    _SQL_INDEX = (
+        'CREATE INDEX status_idx ON {table_name} (status)'
+    )
     # SQL to insert a record
     _SQL_INSERT = (
         'INSERT INTO {table_name} (data, timestamp, status)'

@@ -46,6 +46,7 @@ class SQLiteBase(object):
     _TABLE_NAME = 'base'  # DB table name
     _KEY_COLUMN = ''  # the name of the key column, used in DB CRUD
     _SQL_CREATE = ''  # SQL to create a table
+    _SQL_INDEX = ''  # SQL to index a table
     _SQL_UPDATE = ''  # SQL to update a record
     _SQL_INSERT = ''  # SQL to insert a record
     _SQL_SELECT = ''  # SQL to select a record
@@ -115,6 +116,8 @@ class SQLiteBase(object):
         self._putter = self._conn
 
         self._conn.execute(self._sql_create)
+        if len(self._SQL_INDEX) > 0:
+            self._conn.execute(self._sql_index)
         self._conn.commit()
         # Setup another session only for disk-based queue.
         if self.multithreading:
@@ -188,7 +191,7 @@ class SQLiteBase(object):
         ):
             # sqlackqueue: if we're at the end, start over - loop incremental
             kwargs['rowid'] = start_key
-            result = self._select(args=args, kwargs=kwargs)
+            result = self._select(*args, **kwargs)
         return result
 
     def _count(self):
@@ -225,6 +228,10 @@ class SQLiteBase(object):
         return self._SQL_CREATE.format(
             table_name=self._table_name, key_column=self._key_column
         )
+
+    @property
+    def _sql_index(self):
+        return self._SQL_INDEX.format(table_name=self._table_name)
 
     @property
     def _sql_insert(self):
