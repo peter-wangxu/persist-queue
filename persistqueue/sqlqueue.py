@@ -255,7 +255,7 @@ class MySQLQueue(SQLBase):
 
     _SQL_DELETE = 'DELETE FROM {table_name} WHERE {key_column} {op} %s'
 
-    def __init__(self, host, user, passwd, schema,
+    def __init__(self, host, user, passwd, db_name,
                  port=3306,
                  charset='utf8mb4',
                  serializer=persistqueue.serializers.pickle,
@@ -265,10 +265,11 @@ class MySQLQueue(SQLBase):
         self.host = host
         self.user = user
         self.passwd = passwd
-        self.schema = schema
+        self.db_name = db_name
         self.port = port
         self.charset = charset
         self._serializer = serializer
+        self.auto_commit = True
 
         # SQLite3 transaction lock
         self.tran_lock = threading.Lock()
@@ -289,7 +290,7 @@ class MySQLQueue(SQLBase):
                 "'pip install MySQL-python or PyMySQL'")
             raise
         db = pymysql.connect(host=self.host, port=self.port, user=self.user,
-                             passwd=self.passwd, db=self.schema,
+                             passwd=self.passwd, database=self.db_name,
                              charset=self.charset)
         # 使用cursor()方法获取操作游标
         cursor = db.cursor()
@@ -305,7 +306,7 @@ class MySQLQueue(SQLBase):
         cursor.execute(self._sql_create)
         db.commit()
 
-        cursor.execute("use %s" % self.schema)
+        cursor.execute("use %s" % self.db_name)
         self._putter = MySQLConn(db)
         # self._putter = db
         self._getter = self._putter

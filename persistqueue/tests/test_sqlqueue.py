@@ -285,6 +285,7 @@ class SQLite3QueueNoAutoCommitTest(SQLite3QueueTest):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='sqlqueue_auto_commit')
         self.auto_commit = False
+        self.queue_class = SQLiteQueue
 
     def test_multiple_consumers(self):
         """
@@ -308,6 +309,7 @@ class SQLite3QueueInMemory(SQLite3QueueTest):
     def setUp(self):
         self.path = ":memory:"
         self.auto_commit = True
+        self.queue_class = SQLiteQueue
 
     def test_open_close_1000(self):
         self.skipTest('Memory based sqlite is not persistent.')
@@ -335,6 +337,7 @@ class FILOSQLite3QueueTest(unittest.TestCase):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='filo_sqlqueue')
         self.auto_commit = True
+        self.queue_class = SQLiteQueue
 
     def tearDown(self):
         shutil.rmtree(self.path, ignore_errors=True)
@@ -362,12 +365,14 @@ class FILOSQLite3QueueNoAutoCommitTest(FILOSQLite3QueueTest):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='filo_sqlqueue_auto_commit')
         self.auto_commit = False
+        self.queue_class = FILOSQLiteQueue
 
 
 class SQLite3UniqueQueueTest(unittest.TestCase):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='sqlqueue')
         self.auto_commit = True
+        self.queue_class = UniqueQ
 
     def test_add_duplicate_item(self):
         q = UniqueQ(self.path)
@@ -459,16 +464,3 @@ class SQLite3UniqueQueueTest(unittest.TestCase):
         self.assertEqual(queue.total, 1)
         queue.put({"bar": 2, "foo": 1})
         self.assertEqual(queue.total, 1)
-
-
-
-class MySQLQueueTest(SQLite3QueueTest):
-    def test_1(self):
-        q = MySQLQueue("127.0.0.1", "root", "123456", "testqueu", 33306)
-        q.put("peter")
-        data = q.get()
-        self.assertEqual(data, "peter")
-
-        q.put("yuzhi")
-        data = q.get()
-        self.assertEqual(data, "yuzhi")

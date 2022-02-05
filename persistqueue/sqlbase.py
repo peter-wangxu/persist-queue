@@ -185,8 +185,10 @@ class SQLBase(object):
 
     def __del__(self):
         """Handles sqlite connection when queue was deleted"""
-        self._getter.close()
-        self._putter.close()
+        if self._getter:
+            self._getter.close()
+        if self._putter:
+            self._putter.close()
 
 
 class SQLiteBase(SQLBase):
