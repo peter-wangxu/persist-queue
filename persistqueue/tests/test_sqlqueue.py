@@ -123,7 +123,7 @@ class SQLite3QueueTest(unittest.TestCase):
     def test_multi_threaded_multi_producer(self):
         """Test sqlqueue can be used by multiple producers."""
         queue = self.queue_class(path=self.path, multithreading=True,
-                            auto_commit=self.auto_commit)
+                                 auto_commit=self.auto_commit)
 
         def producer(seq):
             for i in range(10):
@@ -151,7 +151,7 @@ class SQLite3QueueTest(unittest.TestCase):
         """Test sqlqueue can be used by multiple consumers."""
 
         queue = self.queue_class(path=self.path, multithreading=True,
-                            auto_commit=self.auto_commit)
+                                 auto_commit=self.auto_commit)
 
         def producer():
             for x in range(1000):

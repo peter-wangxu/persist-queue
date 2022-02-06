@@ -1,7 +1,7 @@
 # coding=utf-8
 __author__ = 'Peter Wang'
 __license__ = 'BSD'
-__version__ = '0.7.0'
+__version__ = '0.8.0-alpha'
 
 from .exceptions import Empty, Full  # noqa
 from .queue import Queue  # noqa
@@ -9,8 +9,9 @@ from .queue import Queue  # noqa
 try:
     from .pdict import PDict  # noqa
     from .sqlqueue import SQLiteQueue, FIFOSQLiteQueue, FILOSQLiteQueue, \
-        UniqueQ, MySQLQueue  # noqa
+        UniqueQ  # noqa
     from .sqlackqueue import SQLiteAckQueue, UniqueAckQ
+    from .mysqlqueue import MySQLQueue
 except ImportError:
     import logging
 

@@ -12,15 +12,26 @@ log = logging.getLogger(__name__)
 
 def with_conditional_transaction(func):
     def _execute(obj, *args, **kwargs):
+        # for MySQL, connection pool should be used since db connection is
+        # basically not thread-safe
+        _putter = obj._putter
+        if str(type(obj)).find("MySQLQueue") > 0:
+            # use fresh connection from pool not the shared one
+            _putter = obj.get_pooled_conn()
         with obj.tran_lock:
-            with obj._putter as tran:
+            with _putter as tran:
+                # For sqlite3, commit() is called automatically afterwards
+                # but for other db API, this is not TRUE!
                 stat, param = func(obj, *args, **kwargs)
                 s = str(type(tran))
                 if s.find("Cursor") > 0:
                     cur = tran
+                    cur.execute(stat, param)
                 else:
                     cur = tran.cursor()
-                cur.execute(stat, param)
+                    cur.execute(stat, param)
+                    cur.close()
+                    tran.commit()
                 return cur.lastrowid
 
     return _execute

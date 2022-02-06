@@ -1,13 +1,35 @@
-version: 2
+version: 2.1
 jobs:
   py27:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:2.7.17
-    environment:
-      - TOXENV: py27
+        environment:
+          TOXENV: py27
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: rootpw
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
+
     steps: &common_steps
       - checkout
+      - run:
+          # Our primary container isn't MYSQL so run a sleep command until it's ready.
+          name: Waiting for MySQL to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z 127.0.0.1 3306 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for MySQL && exit 1
+            # make sure db can be access via mysql client
+            sudo apt update && sudo apt install default-mysql-client -y
+            mysql -h 127.0.0.1 -u user -ppassw0rd --execute="SELECT version" && echo Success
       - run:
           command: |
             sudo pip install tox
@@ -19,7 +41,7 @@ jobs:
       - run:
           command: |
             mkdir -p /tmp/core_dumps
-            cp core.* /tmp/core_dumps
+            ls core.* && cp core.* /tmp/core_dumps
           when: on_fail
       - store_artifacts:
           # collect core dumps
@@ -35,48 +57,90 @@ jobs:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.4.10
-    environment:
-      - TOXENV: py34
+        environment:
+          TOXENV: py34
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
     steps: *common_steps
 
   py35:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.5.9
-    environment:
-      - TOXENV: py35
+        environment:
+          TOXENV: py35
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
     steps: *common_steps
 
   py36:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.6.10
-    environment:
-      - TOXENV: py36
+        environment:
+          TOXENV: py36
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
     steps: *common_steps
 
   py37:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.7.7
-    environment:
-      - TOXENV: py37
+        environment:
+          TOXENV: py37
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
     steps: *common_steps
 
   py38:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.8.2
-    environment:
-      - TOXENV: py38
+        environment:
+          TOXENV: py38
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
     steps: *common_steps
 
   pep8:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.5.9
-    environment:
-      - TOXENV: pep8
+        environment:
+          TOXENV: pep8
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: rootpw
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
     steps: *common_steps
 
 
@@ -84,8 +148,15 @@ jobs:
     docker:
       # Primary container image where all steps run.
       - image: circleci/python:3.5.9
-    environment:
-      - TOXENV: cover
+        environment:
+          TOXENV: cover
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
     steps: *common_steps
 
 workflows:

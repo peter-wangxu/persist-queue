@@ -2,34 +2,41 @@
 import unittest
 import random
 from threading import Thread
-import shutil
+import time
 import sys
 
-from persistqueue.sqlqueue import MySQLQueue
+from persistqueue.mysqlqueue import MySQLQueue
 from persistqueue import Empty
-from persistqueue.serializers import json as serializers_json
-from persistqueue.serializers import pickle as serializers_pickle
-from persistqueue.serializers import msgpack as serializers_msgpack
+
+# db config aligned with .circleci/config.yml
+db_conf = {
+    "host": "127.0.0.1",
+    "user": "user",
+    "passwd": "passw0rd",
+    "db_name": "testqueue",
+    # "name": "",
+    "port": 33306
+}
 
 
 class MySQLQueueTest(unittest.TestCase):
     """tests that focus on feature specific to mysql"""
 
     def setUp(self):
+        _name = self.id().split(".")[-1:]
+        _name.append(str(time.time()))
+        self._table_name = ".".join(_name)
         self.queue_class = MySQLQueue
-        self.mysql_queue = MySQLQueue("127.0.0.1", "root", "123456",
-                                      "testqueue",
-                                      33306)
-        self.mysql_queue._putter.execute(
-            "drop table if exists %s" % self.mysql_queue._table_name)
-        self.mysql_queue = MySQLQueue("127.0.0.1", "root", "123456",
-                                      "testqueue",
-                                      33306)
-        self.mysql_queue._putter.commit()
+        self.mysql_queue = MySQLQueue(name=self._table_name,
+                                      **db_conf)
         self.queue = self.mysql_queue
 
     def tearDown(self):
         pass
+        tmp_conn = self.mysql_queue.get_pooled_conn()
+        tmp_conn.cursor().execute(
+            "drop table if exists %s" % self.mysql_queue._table_name)
+        tmp_conn.commit()
 
     def test_raise_empty(self):
         q = self.queue
@@ -62,9 +69,8 @@ class MySQLQueueTest(unittest.TestCase):
         q = self.queue
         q.put(b'var1')
         del q
-        q = MySQLQueue("127.0.0.1", "root", "123456",
-                                      "testqueue",
-                                      33306)
+        q = MySQLQueue(name=self._table_name,
+                       **db_conf)
         self.assertEqual(1, q.qsize())
         self.assertEqual(b'var1', q.get())
 
@@ -74,12 +80,10 @@ class MySQLQueueTest(unittest.TestCase):
         q = self.queue
         for i in range(1000):
             q.put('var%d' % i)
-
         self.assertEqual(1000, q.qsize())
         del q
-        q = MySQLQueue("127.0.0.1", "root", "123456",
-                       "testqueue",
-                       33306)
+        q = MySQLQueue(name=self._table_name,
+                       **db_conf)
         self.assertEqual(1000, q.qsize())
         for i in range(1000):
             data = q.get()
@@ -129,7 +133,8 @@ class MySQLQueueTest(unittest.TestCase):
         self.assertRaises(Empty, m_queue.get, block=False)
 
     def test_multi_threaded_multi_producer(self):
-        """Test sqlqueue can be used by multiple producers."""
+        """Test mysqlqueue can be used by multiple producers."""
+
         queue = self.queue
 
         def producer(seq):
@@ -155,8 +160,7 @@ class MySQLQueueTest(unittest.TestCase):
         c.join()
 
     def test_multiple_consumers(self):
-        """Test sqlqueue can be used by multiple consumers."""
-
+        """Test mysqlqueue can be used by multiple consumers."""
         queue = self.queue
 
         def producer():
@@ -168,11 +172,11 @@ class MySQLQueueTest(unittest.TestCase):
         for _ in range(1000):
             counter.append(0)
 
-        def consumer(index):
+        def consumer(i):
             for i in range(200):
                 data = queue.get(block=True)
                 self.assertTrue('var' in data)
-                counter[index * 200 + i] = data
+                counter[i * 200 + i] = data
 
         p = Thread(target=producer)
         p.start()
@@ -207,18 +211,17 @@ class MySQLQueueTest(unittest.TestCase):
         self.assertEqual(8, q.qsize())
         q.task_done()
         # make sure the size still correct
-        self.assertEqual(7, q.qsize())
+        self.assertEqual(8, q.qsize())
 
         self.assertEqual(3, q.get())
         # without task done
         del q
-        q = MySQLQueue("127.0.0.1", "root", "123456",
-                       "testqueue",
-                       33306)
+        q = MySQLQueue(name=self._table_name,
+                       **db_conf)
         # After restart, the qsize and head item are the same
         self.assertEqual(7, q.qsize())
         # After restart, the queue still works
-        self.assertEqual(3, q.get())
+        self.assertEqual(4, q.get())
         self.assertEqual(6, q.qsize())
 
     def test_protocol_1(self):
