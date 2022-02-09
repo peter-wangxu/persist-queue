@@ -117,11 +117,10 @@ class SQLiteBase(object):
         self._conn.execute(self._sql_create)
         self._conn.commit()
         # Setup another session only for disk-based queue.
-        if self.multithreading:
-            if not self.memory_sql:
-                self._putter = self._new_db_connection(
-                    self.path, self.multithreading, self.timeout
-                )
+        if self.multithreading and not self.memory_sql:
+            self._putter = self._new_db_connection(
+                self.path, self.multithreading, self.timeout
+            )
         self._conn.text_factory = str
         self._putter.text_factory = str
 
@@ -186,7 +185,7 @@ class SQLiteBase(object):
             and rowid != start_key
             and (not result or len(result) == 0)
         ):
-            # sqlackqueue: if we're at the end, start over - loop incremental
+            # sqlackqueue: if we're at the end, start over
             kwargs['rowid'] = start_key
             result = self._select(*args, **kwargs)
         return result
