@@ -3,6 +3,7 @@ on specific hardware. User can easily evaluate the performance by running this
 file directly via `python run_benchmark.py`
 """
 from persistqueue import SQLiteQueue
+from persistqueue import SQLiteAckQueue
 from persistqueue import Queue
 import tempfile
 import time
@@ -140,6 +141,65 @@ class Sqlite3QueueBench(object):
                 func()
 
 
+class Sqlite3AckQueueBench(object):
+    """Benchmark Sqlite3AckQueue performance."""
+
+    @time_it
+    def benchmark_sqlite_write(self):
+        """Writing <BENCHMARK_COUNT> items."""
+
+        self.path = tempfile.mkdtemp('b_sql_10000')
+        q = SQLiteAckQueue(self.path)
+        for i in range(BENCHMARK_COUNT):
+            q.put('bench%d' % i)
+
+        assert q.qsize() == BENCHMARK_COUNT
+
+    @time_it
+    def benchmark_sqlite_read_write_false(self):
+        """Writing and reading <BENCHMARK_COUNT> items(1 task_done)."""
+        self.path = tempfile.mkdtemp('b_sql_10000')
+        q = SQLiteAckQueue(self.path)
+        for i in range(BENCHMARK_COUNT):
+            q.put('bench%d' % i)
+
+        while q.qsize() > 0:
+            item = q.get()
+            if i % 2 == 0:
+                q.nack(item)
+            else:
+                q.ack(item)
+        q.task_done()
+        assert q.qsize() == 0
+
+    @time_it
+    def benchmark_sqlite_read_write_true(self):
+        """Writing and reading <BENCHMARK_COUNT> items(many task_done)."""
+        self.path = tempfile.mkdtemp('b_sql_10000')
+        q = SQLiteAckQueue(self.path)
+        for i in range(BENCHMARK_COUNT):
+            q.put('bench%d' % i)
+
+        while q.qsize() > 0:
+            item = q.get()
+            if i % 2 == 0:
+                q.nack(item)
+            else:
+                q.ack(item)
+            q.task_done()
+        assert q.qsize() == 0
+
+    @classmethod
+    def run(cls):
+        print(cls.__doc__)
+        ins = cls()
+        for name in sorted(cls.__dict__):
+
+            if name.startswith('benchmark'):
+                func = getattr(ins, name)
+                func()
+
+
 if __name__ == '__main__':
     import sys
 
@@ -150,3 +210,5 @@ if __name__ == '__main__':
     file_bench.run()
     sql_bench = Sqlite3QueueBench()
     sql_bench.run()
+    sql_ack_bench = Sqlite3AckQueueBench()
+    sql_ack_bench.run()
