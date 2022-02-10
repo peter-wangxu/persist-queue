@@ -92,7 +92,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
             else:
                 # UniqueQueue will block at get() if this is not unique
                 # uuid.uuid4() should be unique
-                q.put('var%d' % uuid.uuid4())
+                q.put('var%s' % uuid.uuid4())
                 n += 1
 
     def test_multi_threaded_parallel(self):
@@ -321,11 +321,17 @@ class SQLite3AckQueueTest(unittest.TestCase):
         self.assertEqual(val1_id, 1)
         # item should get val2
         self.assertEqual(item, 'val2')
+        q.nack(item)
+        # queue should roll over to begining if next > end
+        item = q.get(id=3, next_in_order=True, raw=True)
+        q.nack(item)
+        self.assertEqual(item.get("pqid"), 1)
 
     def test_get_raw(self):
         q = self.queue_class(path=self.path)
         q.put("val1")
         item = q.get(raw=True)
+        q.nack(item)
         # item should get val2
         self.assertEqual(True, "pqid" in item)
         self.assertEqual(item.get("data"), 'val1')
@@ -364,6 +370,7 @@ class SQLite3AckQueueTest(unittest.TestCase):
         qid = q.put("val1")
         q.update(id=qid, item="val2")
         item = q.get(id=qid)
+        q.nack(item)
         self.assertEqual(item, "val2")
 
 
@@ -429,6 +436,7 @@ class FILOSQLite3AckQueueTest(SQLite3AckQueueTest):
         # assert adding another one still works
         q.put('foobar')
         data = q.get()
+        q.nack(data)
         self.assertEqual('foobar', data)
 
     def test_multi_threaded_parallel(self):
@@ -466,10 +474,15 @@ class FILOSQLite3AckQueueTest(SQLite3AckQueueTest):
         q.put("val2")
         q.put("val3")
         item = q.get(id=val1_id, next_in_order=True)
+        q.nack(item)
         # item id should be 1
         self.assertEqual(val1_id, 1)
         # item should get val2
         self.assertEqual(item, 'val3')
+        # queue should roll over to end if next < begining
+        item = q.get(id=1, next_in_order=True, raw=True)
+        q.nack(item)
+        self.assertEqual(item.get("pqid"), 3)
 
 
 # Note

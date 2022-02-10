@@ -77,7 +77,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     def resume_unack_tasks(self):
         unack_count = self.unack_count()
         if unack_count:
-            log.warning("resume %d unack tasks", unack_count)
+            log.info("resume %d unack tasks", unack_count)
         sql = 'UPDATE {} set status = ?' \
               ' WHERE status = ?'.format(self._table_name)
         with self.tran_lock:
@@ -204,11 +204,11 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             for key, value in self._unack_cache.items():
                 if value is item:
                     return key
-            log.warning("Can't find item in unack cache.")
         elif isinstance(item, int) or (
             isinstance(item, str) and item.isnumeric()
         ):
             return int(item)
+        log.warning("Item id not Interger and can't find item in unack cache.")
         return None
 
     def _check_id(self, item, id):
