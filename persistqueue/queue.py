@@ -96,7 +96,7 @@ class Queue(object):
                 raise ValueError("tempdir has to be located "
                                  "on same path filesystem")
         else:
-            _, tempdir = tempfile.mkstemp()
+            fd, tempdir = tempfile.mkstemp()
             if os.stat(self.path).st_dev != os.stat(tempdir).st_dev:
                 self.tempdir = self.path
                 log.warning("Default tempdir '%(dft_dir)s' is not on the "
@@ -105,6 +105,9 @@ class Queue(object):
                                 "dft_dir": tempdir,
                                 "queue_path": self.path,
                                 "new_path": self.tempdir})
+            os.close(fd)
+            os.remove(tempdir)
+
         self.info = self._loadinfo()
         # truncate head case it contains garbage
         hnum, hcnt, hoffset = self.info['head']
