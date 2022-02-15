@@ -1,4 +1,4 @@
-#! coding = utf-8
+# coding=utf-8
 
 """
 A serializer that extends msgpack to specify recommended parameters and adds a

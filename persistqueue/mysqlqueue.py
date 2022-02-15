@@ -1,3 +1,4 @@
+# coding=utf-8
 from .sqlbase import SQLBase
 from dbutils.pooled_db import PooledDB
 import threading
@@ -33,7 +34,7 @@ class MySQLQueue(SQLBase):
     )
     _SQL_SELECT_WHERE = (
         'SELECT {key_column}, data, timestamp FROM {table_name} WHERE'
-        ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
+        ' {column} {op} %s ORDER BY {key_column} ASC LIMIT 1 '
     )
     _SQL_UPDATE = 'UPDATE {table_name} SET data = %s WHERE {key_column} = %s'
 
@@ -42,6 +43,7 @@ class MySQLQueue(SQLBase):
     def __init__(self, host, user, passwd, db_name, name=None,
                  port=3306,
                  charset='utf8mb4',
+                 auto_commit=True,
                  serializer=persistqueue.serializers.pickle,
                  ):
         self.name = name if name else "sql"
@@ -53,7 +55,7 @@ class MySQLQueue(SQLBase):
         self.port = port
         self.charset = charset
         self._serializer = serializer
-        self.auto_commit = True
+        self.auto_commit = auto_commit
 
         # SQLite3 transaction lock
         self.tran_lock = threading.Lock()
@@ -65,6 +67,7 @@ class MySQLQueue(SQLBase):
         self._getter = None
         self._putter = None
         self._new_db_connection()
+        self._init()
 
     def _new_db_connection(self):
         try:
@@ -96,6 +99,7 @@ class MySQLQueue(SQLBase):
         # block kwarg is noop and only here to align with python's queue
         obj = self._serializer.dumps(item)
         _id = self._insert_into(obj, _time.time())
+        self.total += 1
         self.put_event.set()
         return _id
 
@@ -120,20 +124,38 @@ class MySQLQueue(SQLBase):
 
     def _pop(self, rowid=None, raw=False):
         with self.action_lock:
-            row = self._select(rowid=rowid)
-            # Perhaps a sqlite3 bug, sometimes (None, None) is returned
-            # by select, below can avoid these invalid records.
-            if row and row[0] is not None:
-                self._delete(row[0])
-                item = self._serializer.loads(row[1])
-                if raw:
-                    return {
-                        'pqid': row[0],
-                        'data': item,
-                        'timestamp': row[2],
-                    }
-                else:
-                    return item
+            if self.auto_commit:
+                row = self._select(rowid=rowid)
+                # Perhaps a sqlite3 bug, sometimes (None, None) is returned
+                # by select, below can avoid these invalid records.
+                if row and row[0] is not None:
+                    self._delete(row[0])
+                    self.total -= 1
+                    item = self._serializer.loads(row[1])
+                    if raw:
+                        return {
+                            'pqid': row[0],
+                            'data': item,
+                            'timestamp': row[2],
+                        }
+                    else:
+                        return item
+            else:
+                row = self._select(
+                    self.cursor, op=">", column=self._KEY_COLUMN, rowid=rowid
+                )
+                if row and row[0] is not None:
+                    self.cursor = row[0]
+                    self.total -= 1
+                    item = self._serializer.loads(row[1])
+                    if raw:
+                        return {
+                            'pqid': row[0],
+                            'data': item,
+                            'timestamp': row[2],
+                        }
+                    else:
+                        return item
             return None
 
     def update(self, item, id=None):
@@ -194,7 +216,7 @@ class MySQLQueue(SQLBase):
             self._task_done()
 
     def queue(self):
-        rows = self._sql_queue()
+        rows = self._sql_queue().fetchall()
         datarows = []
         for row in rows:
             item = {
@@ -207,7 +229,7 @@ class MySQLQueue(SQLBase):
 
     @property
     def size(self):
-        return self._count()
+        return self.total
 
     def qsize(self):
         return max(0, self.size)

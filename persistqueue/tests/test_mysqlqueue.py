@@ -15,7 +15,7 @@ db_conf = {
     "passwd": "passw0rd",
     "db_name": "testqueue",
     # "name": "",
-    "port": 33306
+    "port": 3306
 }
 
 
@@ -172,11 +172,11 @@ class MySQLQueueTest(unittest.TestCase):
         for _ in range(1000):
             counter.append(0)
 
-        def consumer(i):
+        def consumer(t_index):
             for i in range(200):
                 data = queue.get(block=True)
                 self.assertTrue('var' in data)
-                counter[i * 200 + i] = data
+                counter[t_index * 200 + i] = data
 
         p = Thread(target=producer)
         p.start()
@@ -223,6 +223,20 @@ class MySQLQueueTest(unittest.TestCase):
         # After restart, the queue still works
         self.assertEqual(4, q.get())
         self.assertEqual(6, q.qsize())
+        # auto_commit=False
+        del q
+        q = MySQLQueue(name=self._table_name, auto_commit=False,
+                       **db_conf)
+        self.assertEqual(6, q.qsize())
+        # After restart, the queue still works
+        self.assertEqual(5, q.get())
+        self.assertEqual(5, q.qsize())
+        del q
+        q = MySQLQueue(name=self._table_name, auto_commit=False,
+                       **db_conf)
+        # After restart, the queue still works
+        self.assertEqual(5, q.get())
+        self.assertEqual(5, q.qsize())
 
     def test_protocol_1(self):
         q = self.queue

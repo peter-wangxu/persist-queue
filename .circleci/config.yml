@@ -13,6 +13,7 @@ jobs:
           MYSQL_DATABASE: testqueue
           MYSQL_USER: user
           MYSQL_PASSWORD: passw0rd
+          MYSQL_HOST: '%'
 
     steps: &common_steps
       - checkout
@@ -24,12 +25,9 @@ jobs:
             do
               nc -z 127.0.0.1 3306 && echo Success && exit 0
               echo -n .
-              sleep 1
+              sleep 5
             done
             echo Failed waiting for MySQL && exit 1
-            # make sure db can be access via mysql client
-            sudo apt update && sudo apt install default-mysql-client -y
-            mysql -h 127.0.0.1 -u user -ppassw0rd --execute="SELECT version" && echo Success
       - run:
           command: |
             sudo pip install tox

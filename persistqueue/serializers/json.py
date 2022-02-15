@@ -1,4 +1,4 @@
-#! coding = utf-8
+# coding=utf-8
 
 """
 A serializer that extends json to use bytes and uses newlines to store
