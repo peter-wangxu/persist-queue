@@ -163,7 +163,7 @@ workflows:
     jobs:
       - pep8
       - py27
-      - py34
+#      - py34
       - py35
       - py36
       - py37

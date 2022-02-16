@@ -6,4 +6,4 @@ nose2>=0.6.5
 coverage!=4.5
 cov_core>=1.15.0
 virtualenv>=15.1.0
-cryptography # package only required for tests under mysql8.0
+cryptography;sys_platform!="win32" # package only required for tests under mysql8.0&linux

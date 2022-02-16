@@ -17,6 +17,17 @@ db_conf = {
     # "name": "",
     "port": 3306
 }
+# for appveyor (windows ci), not able to config use the default
+# https://www.appveyor.com/docs/services-databases/#mysql
+if sys.platform.startswith('win32'):
+    db_conf = {
+        "host": "127.0.0.1",
+        "user": "root",
+        "passwd": "Password12!",
+        "db_name": "testqueue",
+        # "name": "",
+        "port": 3306
+    }
 
 
 class MySQLQueueTest(unittest.TestCase):
