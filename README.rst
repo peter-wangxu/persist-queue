@@ -41,7 +41,7 @@ Join `persist-queue <https://join.slack
 
 Requirements
 ------------
-* Python 2.7 or Python 3.x.
+* Python 2.7 or Python 3.x (refer to `Deprecation`_ for future plan)
 * Full support for Linux.
 * Windows support (with `Caution`_ if ``persistqueue.Queue`` is used).
 
@@ -53,7 +53,12 @@ Features
 - Both filed based queues and sqlite3 based queues are supported
 - Filed based queue: multiple serialization protocol support: pickle(default), msgpack, json
 
-
+Deprecation
+-----------
+- `Python 3.4 release has reached end of life <https://www.python.org/downloads/release/python-3410/>`_ and
+  `DBUtils <https://webwareforpython.github.io/DBUtils/changelog.html>`_ ceased support for `Python 3.4`, `persist queue` drops the support for python 3.4 since version 0.8.0.
+  other queue implementations such as file based queue and sqlite3 based queue are still workable.
+- `Python 2 was sunset on January 1, 2020 <https://www.python.org/doc/sunset-python-2/>`_, `persist-queue` will drop any Python 2 support in future version `1.0.0`, no new feature will be developed under Python 2.
 
 Installation
 ------------
@@ -64,7 +69,7 @@ from pypi
 .. code-block:: console
 
     pip install persist-queue
-    # for msgpack support, use following command
+    # for msgpack and mysql support, use following command
     pip install persist-queue[extra]
 
 
@@ -425,6 +430,42 @@ multi-thread usage for **Queue**
         q.put(item)
 
     q.join()       # block until all tasks are done
+
+Example usage with a MySQL based queue
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Available since: v0.8.0*
+
+.. code-block:: python
+
+    >>> import persistqueue
+    >>> db_conf = {
+    >>>     "host": "127.0.0.1",
+    >>>     "user": "user",
+    >>>     "passwd": "passw0rd",
+    >>>     "db_name": "testqueue",
+    >>>     # "name": "",
+    >>>     "port": 3306
+    >>> }
+    >>> q = persistqueue.MySQLQueue(name="testtable", **db_conf)
+    >>> q.put('str1')
+    >>> q.put('str2')
+    >>> q.put('str3')
+    >>> q.get()
+    'str1'
+    >>> del q
+
+
+Close the console, and then recreate the queue:
+
+.. code-block:: python
+
+   >>> import persistqueue
+   >>> q = persistqueue.MySQLQueue(name="testtable", **db_conf)
+   >>> q.get()
+   'str2'
+   >>>
+
 
 
 **note**

@@ -1,1 +1,3 @@
 msgpack>=0.5.6
+PyMySQL
+DBUtils<3.0.0 # since 3.0.0 no longer supports Python2.x

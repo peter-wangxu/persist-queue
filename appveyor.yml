@@ -1,3 +1,6 @@
+services:
+  - mysql
+
 environment:
 
   matrix:
@@ -42,6 +45,10 @@ test_script:
   # Note that you must use the environment variable %PYTHON% to refer to
   # the interpreter you're using - Appveyor does not do anything special
   # to put the Python evrsion you want to use on PATH.
+  - ps: |
+      $env:MYSQL_PWD="Password12!"
+      $cmd = '"C:\Program Files\MySQL\MySQL Server 5.7\bin\mysql" -e "create database testqueue;" --user=root'
+      iex "& $cmd"
   - "%PYTHON%\\Scripts\\tox.exe"
 
 #on_success:

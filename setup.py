@@ -17,6 +17,7 @@ setup(
         'A thread-safe disk based persistent queue in Python.'
     ),
     long_description=open('README.rst').read(),
+    long_description_content_type='text/x-rst',
     author=__import__('persistqueue').__author__,
     author_email='wangxu198709@gmail.com',
     maintainer=__import__('persistqueue').__author__,
