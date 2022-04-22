@@ -180,6 +180,11 @@ Close the console, and then recreate the queue:
    'str2'
    >>>
 
+New functions:
+*Available since v0.8.0*
+
+- ``shrink_disk_usage`` perform a ``VACUUM`` against the sqlite, and rebuild the database file, this usually takes long time and frees a lot of disk space after ``get()``
+
 
 Example usage of SQLite3 based ``UniqueQ``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -167,11 +167,6 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         )
         return sql, AckStatus.acked
 
-    @sqlbase.with_conditional_transaction
-    def shrink_disk_usage(self):
-        sql = """VACUUM"""
-        return sql, ()
-
     @property
     def _sql_mark_ack_status(self):
         return self._SQL_MARK_ACK_UPDATE.format(

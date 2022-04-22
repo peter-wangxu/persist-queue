@@ -75,6 +75,7 @@ class SQLite3QueueTest(unittest.TestCase):
         # assert adding another one still works
         q.put('foobar')
         data = q.get()
+        q.shrink_disk_usage()
         self.assertEqual('foobar', data)
 
     def test_random_read_write(self):
