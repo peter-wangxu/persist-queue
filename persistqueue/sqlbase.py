@@ -212,6 +212,11 @@ class SQLBase(object):
             datarows.append(item)
         return datarows
 
+    @with_conditional_transaction
+    def shrink_disk_usage(self):
+        sql = """VACUUM"""
+        return sql, ()
+
     @property
     def size(self):
         return self.total
