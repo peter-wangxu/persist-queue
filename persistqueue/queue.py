@@ -78,7 +78,7 @@ class Queue(object):
         to read multiple values.
 
         The autosave parameter controls when data removed from the queue is
-        persisted. By default (disabled), the change is only persisted when
+        persisted. By default, (disabled), the change is only persisted when
         task_done() is called. If autosave is enabled, data is persisted
         immediately when get() is called. Adding data to the queue with put()
         will always persist immediately regardless of this setting.

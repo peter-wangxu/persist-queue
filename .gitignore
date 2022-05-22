@@ -90,6 +90,8 @@ ENV/
 
 # IDE specific folders
 .idea/
+.vscode/
 
 # MacOS
 .DS_Store
+

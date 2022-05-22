@@ -229,7 +229,7 @@ The core functions:
    >>> ackq.nack(item) # Else mark item as `nack` so that it can be proceeded again by any worker
    >>> ackq.ack_failed(item) # Or else mark item as `ack_failed` to discard this item
 
-Paramaters:
+Parameters:
 
 - ``clear_acked_data``
     - ``max_delete`` (defaults to 1000): This is the LIMIT.  How many items to delete.
@@ -274,6 +274,15 @@ Note:
 Example usage with a file based queue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Parameters:
+
+- ``path``: specifies the directory wher enqueued data persisted.
+- ``maxsize``: indicates the maximum size stored in the queue, if maxsize<=0 the queue is unlimited.
+- ``chunksize``: indicates how many entries should exist in each chunk file on disk. When a all entries in a chunk file was dequeued by get(), the file would be removed from filesystem.
+- ``tempdir``: indicates where temporary files should be stored. The tempdir has to be located on the same disk as the enqueued data in order to obtain atomic operations.
+- ``serializer``: controls how enqueued data is serialized.
+- ``auto_save``: `True` or `False`. By default, the change is only persisted when task_done() is called. If autosave is enabled, info data is persisted immediately when get() is called. Adding data to the queue with put() will always persist immediately regardless of this setting.
+
 .. code-block:: python
 
     >>> from persistqueue import Queue
@@ -284,6 +293,7 @@ Example usage with a file based queue
     >>> q.get()
     'a'
     >>> q.task_done()
+
 
 Close the python console, and then we restart the queue from the same path,
 
