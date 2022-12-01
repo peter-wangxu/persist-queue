@@ -126,7 +126,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     @sqlbase.with_conditional_transaction
     def _mark_ack_status(self, key, status):
-        return self._sql_mark_ack_status, (
+        return self._sql_mark_ack_status(
             status,
             key,
         )
