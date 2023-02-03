@@ -26,6 +26,7 @@ def dump(value, fp, sort_keys=False):
     fp.write(length)
     fp.write(packed)
 
+
 def dumps(value, sort_keys=False):
     "Serialize value as cbor2 to bytes"
     if sort_keys and isinstance(value, dict):
