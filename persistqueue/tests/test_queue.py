@@ -14,6 +14,7 @@ from threading import Thread
 from persistqueue.serializers import json as serializers_json
 from persistqueue.serializers import pickle as serializers_pickle
 from persistqueue.serializers import msgpack as serializers_msgpack
+from persistqueue.serializers import cbor2 as serializers_cbor2
 
 from persistqueue import Queue, Empty, Full
 
@@ -22,6 +23,7 @@ serializer_params = {
     "serializer=default": {},
     "serializer=json": {"serializer": serializers_json},
     "serializer=msgpack": {"serializer": serializers_msgpack},
+    "serializer=cbor2": {"serializer": serializers_cbor2},
     "serializer=pickle": {"serializer": serializers_pickle},
 }
 

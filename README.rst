@@ -51,7 +51,7 @@ Features
 - Multiple platforms support: Linux, macOS, Windows
 - Pure python
 - Both filed based queues and sqlite3 based queues are supported
-- Filed based queue: multiple serialization protocol support: pickle(default), msgpack, json
+- Filed based queue: multiple serialization protocol support: pickle(default), msgpack, cbor, json
 
 Deprecation
 -----------
@@ -69,7 +69,7 @@ from pypi
 .. code-block:: console
 
     pip install persist-queue
-    # for msgpack and mysql support, use following command
+    # for msgpack, cbor and mysql support, use following command
     pip install persist-queue[extra]
 
 
@@ -80,7 +80,7 @@ from source code
 
     git clone https://github.com/peter-wangxu/persist-queue
     cd persist-queue
-    # for msgpack support, run 'pip install -r extra-requirements.txt' first
+    # for msgpack and cbor support, run 'pip install -r extra-requirements.txt' first
     python setup.py install
 
 
@@ -489,8 +489,8 @@ Due to the limitation of file queue described in issue `#89 <https://github.com/
 `task_done` in one thread may acknowledge items in other threads which should not be. Considering the `SQLiteAckQueue` if you have such requirement.
 
 
-Serialization via msgpack/json
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Serialization via msgpack/cbor/json
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - v0.4.1: Currently only available for file based Queue
 - v0.4.2: Also available for SQLite3 based Queues
 
@@ -498,6 +498,8 @@ Serialization via msgpack/json
 
     >>> from persistqueue
     >>> q = persistqueue.Queue('mypath', serializer=persistqueue.serializers.msgpack)
+    >>> # via cbor2
+    >>> # q = persistqueue.Queue('mypath', serializer=persistqueue.serializers.cbor2)
     >>> # via json
     >>> # q = Queue('mypath', serializer=persistqueue.serializers.json)
     >>> q.get()
@@ -611,4 +613,3 @@ when creating the queue if above error occurs.
 
 The sqlite3 queues are heavily tested under multi-threading environment, if you find it's not thread-safe, please
 make sure you set the ``multithreading=True`` when initializing the queue before submitting new issue:).
-

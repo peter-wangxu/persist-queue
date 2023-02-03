@@ -12,6 +12,7 @@ from persistqueue import Empty
 from persistqueue.serializers import json as serializers_json
 from persistqueue.serializers import pickle as serializers_pickle
 from persistqueue.serializers import msgpack as serializers_msgpack
+from persistqueue.serializers import cbor2 as serializers_cbor2
 
 
 class SQLite3QueueTest(unittest.TestCase):
@@ -448,6 +449,18 @@ class SQLite3UniqueQueueTest(unittest.TestCase):
             multithreading=True,
             auto_commit=self.auto_commit,
             serializer=serializers_msgpack
+        )
+        queue.put({"foo": 1, "bar": 2})
+        self.assertEqual(queue.total, 1)
+        queue.put({"bar": 2, "foo": 1})
+        self.assertEqual(queue.total, 1)
+
+    def test_unique_dictionary_serialization_cbor2(self):
+        queue = UniqueQ(
+            path=self.path,
+            multithreading=True,
+            auto_commit=self.auto_commit,
+            serializer=serializers_cbor2
         )
         queue.put({"foo": 1, "bar": 2})
         self.assertEqual(queue.total, 1)
