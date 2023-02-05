@@ -1,3 +1,4 @@
 msgpack>=0.5.6
+cbor2>=5.2.0
 PyMySQL
 DBUtils<3.0.0 # since 3.0.0 no longer supports Python2.x
