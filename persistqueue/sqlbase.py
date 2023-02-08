@@ -227,6 +227,9 @@ class SQLBase(object):
     def empty(self):
         return self.size == 0
 
+    def full(self):
+        return False
+
     def __len__(self):
         return self.size
 
