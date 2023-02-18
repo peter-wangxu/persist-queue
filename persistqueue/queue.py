@@ -152,6 +152,9 @@ class Queue(object):
     def empty(self):
         return self.qsize() == 0
 
+    def full(self):
+        return self.qsize() == self.maxsize
+
     def put(self, item, block=True, timeout=None):
         "Interface for putting item in disk-based queue."
         self.not_full.acquire()

@@ -49,6 +49,17 @@ class SQLite3QueueTest(unittest.TestCase):
         q.get()
         self.assertEqual(q.empty(), True)
 
+    def test_full(self):
+        # SQL queue `full()` always returns `False` !!
+        q = self.queue_class(self.path, auto_commit=self.auto_commit)
+        self.assertEqual(q.full(), False)
+
+        q.put('first')
+        self.assertEqual(q.full(), False)
+
+        q.get()
+        self.assertEqual(q.full(), False)
+
     def test_open_close_single(self):
         """Write 1 item, close, reopen checking if same item is there"""
 
