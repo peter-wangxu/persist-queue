@@ -448,7 +448,11 @@ class SQLiteBase(SQLBase):
         conn.execute('PRAGMA journal_mode=WAL;')
         return conn
 
-    def __del__(self):
-        """Handles sqlite connection when queue was deleted"""
+    def close(self):
+        """Closes sqlite connections"""
         self._getter.close()
         self._putter.close()
+
+    def __del__(self):
+        """Handles sqlite connection when queue was deleted"""
+        self.close()
