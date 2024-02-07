@@ -1,3 +1,4 @@
+tox
 mock>=2.0.0
 flake8>=3.2.1
 eventlet>=0.19.0

@@ -1,7 +1,6 @@
-# coding=utf-8
 __author__ = 'Peter Wang'
 __license__ = 'BSD'
-__version__ = '0.8.1'
+__version__ = '1.0.0-alpha'
 
 # Relative imports assuming the current package structure
 from .exceptions import Empty, Full  # noqa: F401
@@ -9,6 +8,7 @@ from .queue import Queue  # noqa: F401
 import logging
 log = logging.getLogger(__name__)
 
+# Attempt to import optional components, logging if not found.
 try:
     from .pdict import PDict  # noqa: F401
     from .sqlqueue import (  # noqa: F401

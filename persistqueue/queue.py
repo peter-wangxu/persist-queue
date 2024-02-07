@@ -1,63 +1,36 @@
-# coding=utf-8
-
 """A thread-safe disk based persistent queue in Python."""
-
 import logging
 import os
 import tempfile
-
 import threading
 from time import time as _time
-
 import persistqueue.serializers.pickle
 from persistqueue.exceptions import Empty, Full
+from typing import Any, Optional, Tuple, BinaryIO
 
 log = logging.getLogger(__name__)
 
-
-def _truncate(fn, length):
+def _truncate(fn: str, length: int) -> None:
+    """Truncate the file to a specified length."""
     with open(fn, 'ab+') as f:
         f.truncate(length)
 
+def atomic_rename(src: str, dst: str) -> None:
+    """Atomically rename a file from src to dst."""
+    os.replace(src, dst)
 
-def atomic_rename(src, dst):
-    try:
-        os.replace(src, dst)
-    except AttributeError:  # python < 3.3
-        import sys
+class Queue:
+    """Thread-safe, persistent queue."""
 
-        if sys.platform == 'win32':
-            import ctypes
-
-            if sys.version_info[0] == 2:
-                _str = unicode  # noqa
-                _bytes = str
-            else:
-                _str = str
-                _bytes = bytes
-
-            if isinstance(src, _str) and isinstance(dst, _str):
-                MoveFileEx = ctypes.windll.kernel32.MoveFileExW
-            elif isinstance(src, _bytes) and isinstance(dst, _bytes):
-                MoveFileEx = ctypes.windll.kernel32.MoveFileExA
-            else:
-                raise ValueError("Both args must be bytes or unicode.")
-
-            MOVEFILE_REPLACE_EXISTING = 0x1
-
-            if not MoveFileEx(src, dst, MOVEFILE_REPLACE_EXISTING):
-                errno = ctypes.GetLastError()
-                strerror = os.strerror(errno)
-                raise WindowsError(errno, strerror)
-
-        else:
-            os.rename(src, dst)
-
-
-class Queue(object):
-    def __init__(self, path, maxsize=0, chunksize=100, tempdir=None,
-                 serializer=persistqueue.serializers.pickle,
-                 autosave=False):
+    def __init__(
+        self, 
+        path: str, 
+        maxsize: int = 0, 
+        chunksize: int = 100, 
+        tempdir: Optional[str] = None,
+        serializer: Any = persistqueue.serializers.pickle,
+        autosave: bool = False
+    ) -> None:
         """Create a persistent queue object on a given path.
 
         The argument path indicates a directory where enqueued data should be
@@ -83,80 +56,67 @@ class Queue(object):
         immediately when get() is called. Adding data to the queue with put()
         will always persist immediately regardless of this setting.
         """
-        log.debug('Initializing File based Queue with path {}'.format(path))
-        self.path = path
-        self.chunksize = chunksize
-        self.tempdir = tempdir
-        self.maxsize = maxsize
-        self.serializer = serializer
-        self.autosave = autosave
+        log.debug(f'Initializing File based Queue with path {path}')
+        self.path: str = path
+        self.chunksize: int = chunksize
+        self.tempdir: Optional[str] = tempdir
+        self.maxsize: int = maxsize
+        self.serializer: Any = serializer
+        self.autosave: bool = autosave
         self._init(maxsize)
         if self.tempdir:
             if os.stat(self.path).st_dev != os.stat(self.tempdir).st_dev:
-                raise ValueError("tempdir has to be located "
-                                 "on same path filesystem")
+                raise ValueError("tempdir has to be located on same path filesystem")
         else:
             fd, tempdir = tempfile.mkstemp()
             if os.stat(self.path).st_dev != os.stat(tempdir).st_dev:
                 self.tempdir = self.path
-                log.warning("Default tempdir '%(dft_dir)s' is not on the "
-                            "same filesystem with queue path '%(queue_path)s'"
-                            ",defaulting to '%(new_path)s'." % {
-                                "dft_dir": tempdir,
-                                "queue_path": self.path,
-                                "new_path": self.tempdir})
+                log.warning(f"Default tempdir '{tempdir}' is not on the "
+                            f"same filesystem with queue path '{self.path}'"
+                            f",defaulting to '{self.tempdir}'.")
             os.close(fd)
             os.remove(tempdir)
-
-        self.info = self._loadinfo()
-        # truncate head case it contains garbage
+        self.info: dict = self._loadinfo()
+        # truncate head in case it contains garbage
         hnum, hcnt, hoffset = self.info['head']
         headfn = self._qfile(hnum)
         if os.path.exists(headfn):
             if hoffset < os.path.getsize(headfn):
                 _truncate(headfn, hoffset)
-        # let the head file open
-        self.headf = self._openchunk(hnum, 'ab+')
-        # let the tail file open
+        self.headf: BinaryIO = self._openchunk(hnum, 'ab+')
         tnum, _, toffset = self.info['tail']
-        self.tailf = self._openchunk(tnum)
+        self.tailf: BinaryIO = self._openchunk(tnum)
         self.tailf.seek(toffset)
-        # update unfinished tasks with the current number of enqueued tasks
-        self.unfinished_tasks = self.info['size']
-        # optimize info file updates
-        self.update_info = True
+        self.unfinished_tasks: int = self.info['size']
+        self.update_info: bool = True
 
-    def _init(self, maxsize):
-        self.mutex = threading.Lock()
-        self.not_empty = threading.Condition(self.mutex)
-        self.not_full = threading.Condition(self.mutex)
-        self.all_tasks_done = threading.Condition(self.mutex)
-
+    def _init(self, maxsize: int) -> None:
+        self.mutex: threading.Lock = threading.Lock()
+        self.not_empty: threading.Condition = threading.Condition(self.mutex)
+        self.not_full: threading.Condition = threading.Condition(self.mutex)
+        self.all_tasks_done: threading.Condition = threading.Condition(self.mutex)
         if not os.path.exists(self.path):
             os.makedirs(self.path)
 
-    def join(self):
+    def join(self) -> None:
         with self.all_tasks_done:
             while self.unfinished_tasks:
                 self.all_tasks_done.wait()
 
-    def qsize(self):
-        n = None
+    def qsize(self) -> int:
         with self.mutex:
-            n = self._qsize()
-        return n
+            return self._qsize()
 
-    def _qsize(self):
+    def _qsize(self) -> int:
         return self.info['size']
 
-    def empty(self):
+    def empty(self) -> bool:
         return self.qsize() == 0
 
-    def full(self):
+    def full(self) -> bool:
         return self.qsize() == self.maxsize
 
-    def put(self, item, block=True, timeout=None):
-        "Interface for putting item in disk-based queue."
+    def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None:
         self.not_full.acquire()
         try:
             if self.maxsize > 0:
@@ -181,7 +141,7 @@ class Queue(object):
         finally:
             self.not_full.release()
 
-    def _put(self, item):
+    def _put(self, item: Any) -> None:
         self.serializer.dump(item, self.headf)
         self.headf.flush()
         hnum, hpos, _ = self.info['head']
@@ -189,8 +149,6 @@ class Queue(object):
         if hpos == self.info['chunksize']:
             hpos = 0
             hnum += 1
-            # make sure data is written to disk whatever
-            # its underlying file system
             os.fsync(self.headf.fileno())
             self.headf.close()
             self.headf = self._openchunk(hnum, 'ab+')
@@ -198,10 +156,10 @@ class Queue(object):
         self.info['head'] = [hnum, hpos, self.headf.tell()]
         self._saveinfo()
 
-    def put_nowait(self, item):
-        return self.put(item, False)
+    def put_nowait(self, item: Any) -> None:
+        self.put(item, False)
 
-    def get(self, block=True, timeout=None):
+    def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
         self.not_empty.acquire()
         try:
             if not block:
@@ -225,10 +183,10 @@ class Queue(object):
         finally:
             self.not_empty.release()
 
-    def get_nowait(self):
+    def get_nowait(self) -> Any:
         return self.get(False)
 
-    def _get(self):
+    def _get(self) -> Any:
         tnum, tcnt, toffset = self.info['tail']
         hnum, hcnt, _ = self.info['head']
         if [tnum, tcnt] >= [hnum, hcnt]:
@@ -250,7 +208,7 @@ class Queue(object):
             self.update_info = True
         return data
 
-    def task_done(self):
+    def task_done(self) -> None:
         with self.all_tasks_done:
             unfinished = self.unfinished_tasks - 1
             if unfinished <= 0:
@@ -260,17 +218,17 @@ class Queue(object):
             self.unfinished_tasks = unfinished
             self._task_done()
 
-    def _task_done(self):
+    def _task_done(self) -> None:
         if self.autosave:
             return
         if self.update_info:
             self._saveinfo()
             self.update_info = False
 
-    def _openchunk(self, number, mode='rb'):
+    def _openchunk(self, number: int, mode: str = 'rb') -> BinaryIO:
         return open(self._qfile(number), mode)
 
-    def _loadinfo(self):
+    def _loadinfo(self) -> dict:
         infopath = self._infopath()
         if os.path.exists(infopath):
             with open(infopath, 'rb') as f:
@@ -284,21 +242,20 @@ class Queue(object):
             }
         return info
 
-    def _gettempfile(self):
+    def _gettempfile(self) -> Tuple[int, str]:
         if self.tempdir:
             return tempfile.mkstemp(dir=self.tempdir)
         else:
             return tempfile.mkstemp()
 
-    def _saveinfo(self):
+    def _saveinfo(self) -> None:
         tmpfd, tmpfn = self._gettempfile()
         with os.fdopen(tmpfd, "wb") as tmpfo:
             self.serializer.dump(self.info, tmpfo)
         atomic_rename(tmpfn, self._infopath())
         self._clear_tail_file()
 
-    def _clear_tail_file(self):
-        """Remove the tail files whose items were already get."""
+    def _clear_tail_file(self) -> None:
         tnum, _, _ = self.info['tail']
         while tnum >= 1:
             tnum -= 1
@@ -308,14 +265,13 @@ class Queue(object):
             else:
                 break
 
-    def _qfile(self, number):
+    def _qfile(self, number: int) -> str:
         return os.path.join(self.path, 'q%05d' % number)
 
-    def _infopath(self):
+    def _infopath(self) -> str:
         return os.path.join(self.path, 'info')
 
-    def __del__(self):
-        """Handles the removal of queue."""
-        for to_close in [self.headf, self.tailf]:
+    def __del__(self) -> None:
+        for to_close in self.headf, self.tailf:
             if to_close and not to_close.closed:
                 to_close.close()
