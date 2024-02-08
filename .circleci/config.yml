@@ -30,7 +30,7 @@ jobs:
             echo Failed waiting for MySQL && exit 1
       - run:
           command: |
-            sudo pip install tox
+            pip install tox
       - run:
           command: | # tell the operating system to remove the file size limit on core dump files
             ulimit -c unlimited
@@ -114,9 +114,65 @@ jobs:
   py38:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:3.8.2
+      - image: cimg/python:3.8
         environment:
           TOXENV: py38
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
+    steps: *common_steps
+  py39:
+    docker:
+      # Primary container image where all steps run.
+      - image: cimg/python:3.9
+        environment:
+          TOXENV: py39
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
+    steps: *common_steps
+  py310:
+    docker:
+      # Primary container image where all steps run.
+      - image: cimg/python:3.10
+        environment:
+          TOXENV: py310
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
+    steps: *common_steps
+  py311:
+    docker:
+      # Primary container image where all steps run.
+      - image: cimg/python:3.11
+        environment:
+          TOXENV: py311
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
+    steps: *common_steps
+  py312:
+    docker:
+      # Primary container image where all steps run.
+      - image: cimg/python:3.12
+        environment:
+          TOXENV: py312
       # MySQL env for mysql queue tests
       - image: circleci/mysql:8.0
         environment:
@@ -168,4 +224,8 @@ workflows:
       - py36
       - py37
       - py38
+      - py39
+      - py310
+      - py311
+      - py312
       - cover
