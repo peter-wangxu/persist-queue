@@ -45,6 +45,7 @@ class MySQLQueue(SQLBase):
         auto_commit: bool = True,
         serializer: Any = persistqueue.serializers.pickle,
     ) -> None:
+        super(MySQLQueue, self).__init__()
         self.name = name if name else "sql"
         self.host = host
         self.user = user
