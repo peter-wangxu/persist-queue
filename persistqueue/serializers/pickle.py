@@ -1,5 +1,4 @@
 """A serializer that extends pickle to change the default protocol."""
-# Removed the "from __future__ import absolute_import" import as it's unnecessary in Python 3.
 from typing import Any, BinaryIO, Dict
 import pickle
 import logging
@@ -8,8 +7,8 @@ import logging
 log = logging.getLogger(__name__)
 
 # Retrieve the selected pickle protocol from a common utility module
-protocol: int = 4  # Python 3 uses protocol version 4 or higher
-log.info(f"Selected pickle protocol: '{protocol}'")
+protocol = 4  # Python 3 uses protocol version 4 or higher
+log.info("Selected pickle protocol: '{}'".format(protocol))
 
 
 def dump(value: Any, fp: BinaryIO, sort_keys: bool = False) -> None:

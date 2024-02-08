@@ -17,9 +17,14 @@ class PDict(sqlbase.SQLiteBase, dict):
     _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
     _SQL_DELETE = 'DELETE FROM {table_name} WHERE {key_column} {op} ?'
 
-    def __init__(self, path: str, name: str, multithreading: bool = False) -> None:
+    def __init__(self,
+                 path: str,
+                 name: str,
+                 multithreading: bool = False) -> None:
         # PDict is always auto_commit=True
-        super().__init__(path, name=name, multithreading=multithreading, auto_commit=True)
+        super().__init__(path, name=name,
+                         multithreading=multithreading,
+                         auto_commit=True)
 
     def __iter__(self) -> Iterator:
         raise NotImplementedError('Not supported.')
@@ -58,7 +63,7 @@ class PDict(sqlbase.SQLiteBase, dict):
         if row:
             return self._serializer.loads(row[1])
         else:
-            raise KeyError(f'Key: {item} not exists.')
+            raise KeyError('Key: {} not exists.'.format(item))
 
     def get(self, key: Any, default: Any = None) -> Any:
         try:

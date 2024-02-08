@@ -33,7 +33,6 @@ jobs:
             pip install tox
       - run:
           command: | # tell the operating system to remove the file size limit on core dump files
-            ulimit -c unlimited
             tox
       - run: bash <(curl -s https://codecov.io/bash) -cF python
       - run:
@@ -218,8 +217,8 @@ workflows:
   build:
     jobs:
       - pep8
-      - py27
-#      - py34
+      # - py27
+      # - py34
       - py35
       - py36
       - py37

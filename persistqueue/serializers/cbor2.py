@@ -50,7 +50,8 @@ def dumps(value: Any, sort_keys: bool = False) -> bytes:
 
 def load(fp: BinaryIO) -> Any:
     """
-    Deserialize one cbor2 value from a byte-mode file object using length prefix.
+    Deserialize one cbor2 value from a byte-mode file object
+    using length prefix.
 
     Args:
         fp: A file-like object supporting binary read operations.
@@ -58,9 +59,11 @@ def load(fp: BinaryIO) -> Any:
     Returns:
         The deserialized Python object.
     """
-    # Read the 4-byte length prefix and determine the length of the serialized object
+    # Read the 4-byte length prefix and determine the length of the
+    # serialized object
     length = length_struct.unpack(fp.read(4))[0]
-    # Read the serialized object using the determined length and deserialize it
+    # Read the serialized object using the determined length and
+    # deserialize it
     return cbor2.loads(fp.read(length))
 
 

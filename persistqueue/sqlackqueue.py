@@ -65,7 +65,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         if not self.auto_commit:
             warnings.warn("disable auto commit is not supported in ack queue")
             self.auto_commit = True
-        self._unack_cache: Dict[int, Any] = {}
+        self._unack_cache = {}
         if auto_resume:
             self.resume_unack_tasks()
 
@@ -124,7 +124,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
 
     @sqlbase.with_conditional_transaction
     def clear_acked_data(
-        self, max_delete: int = 1000, keep_latest: int = 1000, clear_ack_failed: bool = False
+        self, max_delete: int = 1000, keep_latest: int = 1000,
+        clear_ack_failed: bool = False
     ) -> None:
         acked_clear_all = ''
         acked_to_delete = ''
@@ -133,7 +134,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             # Added for backward compatibility for
             # those that set the _MAX_ACKED_LENGTH
             print(
-                "_MAX_ACKED_LENGTH has been deprecated.  Use clear_acked_data(keep_latest=1000, max_delete=1000)"
+                "_MAX_ACKED_LENGTH has been deprecated.  "
+                "Use clear_acked_data(keep_latest=1000, max_delete=1000)"
             )
             keep_latest = self._MAX_ACKED_LENGTH
         if clear_ack_failed:
@@ -163,7 +165,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             table_name=self._table_name, key_column=self._key_column
         )
 
-    def _pop(self, rowid: Optional[int] = None, next_in_order: bool = False, raw: bool = False) -> Optional[Dict[str, Any]]:
+    def _pop(self, rowid: Optional[int] = None, next_in_order: bool = False,
+             raw: bool = False) -> Optional[Dict[str, Any]]:
         with self.action_lock:
             row = self._select(next_in_order=next_in_order, rowid=rowid)
             if row and row[0] is not None:
@@ -206,7 +209,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             search = True
         return item, search
 
-    def ack(self, item: Any = None, id: Optional[int] = None) -> Optional[int]:
+    def ack(self, item: Any = None,
+            id: Optional[int] = None) -> Optional[int]:
 
         item, search = self._check_id(item, id)
         with self.action_lock:
@@ -218,7 +222,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                 self._unack_cache.pop(_id)
         return _id
 
-    def ack_failed(self, item: Any = None, id: Optional[int] = None) -> Optional[int]:
+    def ack_failed(self, item: Any = None,
+                   id: Optional[int] = None) -> Optional[int]:
         item, search = self._check_id(item, id)
         with self.action_lock:
             _id = self._find_item_id(item, search)
@@ -229,7 +234,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
                 self._unack_cache.pop(_id)
         return _id
 
-    def nack(self, item: Any = None, id: Optional[int] = None) -> Optional[int]:
+    def nack(self, item: Any = None,
+             id: Optional[int] = None) -> Optional[int]:
         item, search = self._check_id(item, id)
         with self.action_lock:
             _id = self._find_item_id(item, search)
@@ -255,8 +261,9 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return _id
 
     def get(
-        self, block: bool = True, timeout: Optional[float] = None, id: Optional[int] = None, next_in_order: bool = False, raw: bool = False
-    ) -> Any:
+            self, block: bool = True, timeout: Optional[float] = None,
+            id: Optional[int] = None, next_in_order: bool = False,
+            raw: bool = False) -> Any:
         rowid = self._find_item_id(id, search=False)
         if rowid is None and next_in_order:
             raise ValueError(

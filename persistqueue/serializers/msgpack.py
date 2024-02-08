@@ -45,7 +45,8 @@ def dumps(value: Any, sort_keys: bool = False) -> bytes:
 
 def load(fp: BinaryIO) -> Any:
     """
-    Deserialize one msgpack value from a byte-mode file object using length prefix.
+    Deserialize one msgpack value from a byte-mode file object using length
+    prefix.
 
     Args:
         fp: A file-like object supporting binary read operations.

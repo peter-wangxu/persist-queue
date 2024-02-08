@@ -116,7 +116,9 @@ class MySQLConn:
     used to mitigate the interface differences between drivers/db
     """
 
-    def __init__(self, queue: Optional[MySQLQueue] = None, conn: Optional[Any] = None) -> None:
+    def __init__(self,
+                 queue: Optional[MySQLQueue] = None,
+                 conn: Optional[Any] = None) -> None:
         self._queue = queue
         if queue is not None:
             self._conn = queue.get_pooled_conn()
@@ -129,7 +131,10 @@ class MySQLConn:
         self._cursor = self._conn.cursor()
         return self._conn
 
-    def __exit__(self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[Any]) -> None:
+    def __exit__(self,
+                 exc_type: Optional[type],
+                 exc_val: Optional[BaseException],
+                 exc_tb: Optional[Any]) -> None:
         # do not commit() but to close() , keep same behavior
         # with dbutils
         self._cursor.close()
@@ -138,7 +143,7 @@ class MySQLConn:
         if self._queue is not None:
             conn = self._queue.get_pooled_conn()
         else:
-            conn = self._conn        
+            conn = self._conn
         cursor = conn.cursor()
         cursor.execute(*args, **kwargs)
         return cursor

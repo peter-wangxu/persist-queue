@@ -1,6 +1,0 @@
-# 1.0.0-alpha
-
-1. Only Python3 are offically supported by persistqueue, since Python 2 was no longer under maintaines since 2020
-
-2. It is suggested to use persistqueue version which created the queue and data, ex. default pickle version has changed in v1.0.0
-

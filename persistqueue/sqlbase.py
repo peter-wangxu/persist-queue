@@ -64,28 +64,31 @@ class SQLBase(object):
     """SQL base class."""
 
     """SQL base class."""
-    _TABLE_NAME: str = 'base'  # DB table name
-    _KEY_COLUMN: str = ''  # the name of the key column, used in DB CRUD
-    _SQL_CREATE: str = ''  # SQL to create a table
-    _SQL_UPDATE: str = ''  # SQL to update a record
-    _SQL_INSERT: str = ''  # SQL to insert a record
-    _SQL_SELECT: str = ''  # SQL to select a record
-    _SQL_SELECT_ID: str = ''  # SQL to select a record with criteria
-    _SQL_SELECT_WHERE: str = ''  # SQL to select a record with criteria
-    _SQL_DELETE: str = ''  # SQL to delete a record
+    _TABLE_NAME = 'base'  # DB table name
+    _KEY_COLUMN = ''  # the name of the key column, used in DB CRUD
+    _SQL_CREATE = ''  # SQL to create a table
+    _SQL_UPDATE = ''  # SQL to update a record
+    _SQL_INSERT = ''  # SQL to insert a record
+    _SQL_SELECT = ''  # SQL to select a record
+    _SQL_SELECT_ID = ''  # SQL to select a record with criteria
+    _SQL_SELECT_WHERE = ''  # SQL to select a record with criteria
+    _SQL_DELETE = ''  # SQL to delete a record
 
     def __init__(self) -> None:
         self._serializer = persistqueue.serializers.pickle
-        self.auto_commit: bool = True  # Transaction commit behavior
-        self.tran_lock: threading.Lock = threading.Lock()  # SQL transaction lock
-        self.put_event: threading.Event = threading.Event()  # Event signaling new data
-        self.action_lock: threading.Lock = threading.Lock()  # Lock for atomic actions
-        self.total: int = 0  # Total tasks
-        self.cursor: int = 0  # Cursor for task processing
+        self.auto_commit = True  # Transaction commit behavior
+        # SQL transaction lock
+        self.tran_lock = threading.Lock()
+        # Event signaling new data
+        self.put_event = threading.Event()
+        # Lock for atomic actions
+        self.action_lock = threading.Lock()
+        self.total = 0  # Total tasks
+        self.cursor = 0  # Cursor for task processing
         # Connection for getting tasks
-        self._getter: Optional[sqlite3.Connection] = None
+        self._getter = None
         # Connection for putting tasks
-        self._putter: Optional[sqlite3.Connection] = None
+        self._putter = None
 
     @with_conditional_transaction
     def _insert_into(self, *record: Any) -> Tuple[str, Tuple[Any, ...]]:
@@ -103,7 +106,8 @@ class SQLBase(object):
             table_name=self._table_name, key_column=self._key_column, op=op)
         return sql, (key,)
 
-    def _pop(self, rowid: Optional[int] = None, raw: bool = False) -> Optional[Any]:
+    def _pop(self, rowid: Optional[int] = None, raw: bool = False
+             ) -> Optional[Any]:
         with self.action_lock:
             if self.auto_commit:
                 row = self._select(rowid=rowid)
@@ -151,7 +155,9 @@ class SQLBase(object):
         self._update(_id, obj)
         return _id
 
-    def get(self, block: bool = True, timeout: Optional[float] = None, id: Optional[int] = None, raw: bool = False) -> Any:
+    def get(self, block: bool = True, timeout: Optional[float] = None,
+            id: Optional[int] = None, raw: bool = False
+            ) -> Any:
         if isinstance(id, dict) and "pqid" in id:
             rowid = id.get("pqid")
         elif isinstance(id, int):
@@ -341,19 +347,22 @@ class SQLBase(object):
 
 class SQLiteBase(SQLBase):
     """SQLite3 base class."""
-    _TABLE_NAME: str = 'base'  # DB table name
-    _KEY_COLUMN: str = ''  # the name of the key column, used in DB CRUD
-    _SQL_CREATE: str = ''  # SQL to create a table
-    _SQL_UPDATE: str = ''  # SQL to update a record
-    _SQL_INSERT: str = ''  # SQL to insert a record
-    _SQL_SELECT: str = ''  # SQL to select a record
-    _SQL_SELECT_ID: str = ''  # SQL to select a record with criteria
-    _SQL_SELECT_WHERE: str = ''  # SQL to select a record with criteria
-    _SQL_DELETE: str = ''  # SQL to delete a record
-    _MEMORY: str = ':memory:'  # flag indicating store DB in memory
+    _TABLE_NAME = 'base'  # DB table name
+    _KEY_COLUMN = ''  # the name of the key column, used in DB CRUD
+    _SQL_CREATE = ''  # SQL to create a table
+    _SQL_UPDATE = ''  # SQL to update a record
+    _SQL_INSERT = ''  # SQL to insert a record
+    _SQL_SELECT = ''  # SQL to select a record
+    _SQL_SELECT_ID = ''  # SQL to select a record with criteria
+    _SQL_SELECT_WHERE = ''  # SQL to select a record with criteria
+    _SQL_DELETE = ''  # SQL to delete a record
+    _MEMORY = ':memory:'  # flag indicating store DB in memory
 
-    def __init__(self, path: str, name: str = 'default', multithreading: bool = False, timeout: float = 10.0,
-                 auto_commit: bool = True, serializer: Any = persistqueue.serializers.pickle, db_file_name: Optional[str] = None) -> None:
+    def __init__(self, path: str, name: str = 'default',
+                 multithreading: bool = False, timeout: float = 10.0,
+                 auto_commit: bool = True,
+                 serializer: Any = persistqueue.serializers.pickle,
+                 db_file_name: Optional[str] = None) -> None:
         """Initiate a queue in sqlite3 or memory.
 
         :param path: path for storing DB file.
@@ -421,7 +430,8 @@ class SQLiteBase(SQLBase):
         self.tran_lock = threading.Lock()
         self.put_event = threading.Event()
 
-    def _new_db_connection(self, path, multithreading, timeout) -> sqlite3.Connection:
+    def _new_db_connection(self, path, multithreading, timeout
+                           ) -> sqlite3.Connection:
         conn = None
         if path == self._MEMORY:
             conn = sqlite3.connect(path, check_same_thread=not multithreading)

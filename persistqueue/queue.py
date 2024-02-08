@@ -59,13 +59,13 @@ class Queue:
         immediately when get() is called. Adding data to the queue with put()
         will always persist immediately regardless of this setting.
         """
-        log.debug(f'Initializing File based Queue with path {path}')
-        self.path: str = path
-        self.chunksize: int = chunksize
-        self.tempdir: Optional[str] = tempdir
-        self.maxsize: int = maxsize
-        self.serializer: Any = serializer
-        self.autosave: bool = autosave
+        log.debug('Initializing File based Queue with path {}'.format(path))
+        self.path = path
+        self.chunksize = chunksize
+        self.tempdir = tempdir
+        self.maxsize = maxsize
+        self.serializer = serializer
+        self.autosave = autosave
         self._init(maxsize)
         if self.tempdir:
             if os.stat(self.path).st_dev != os.stat(self.tempdir).st_dev:
@@ -75,12 +75,15 @@ class Queue:
             fd, tempdir = tempfile.mkstemp()
             if os.stat(self.path).st_dev != os.stat(tempdir).st_dev:
                 self.tempdir = self.path
-                log.warning(f"Default tempdir '{tempdir}' is not on the "
-                            f"same filesystem with queue path '{self.path}'"
-                            f",defaulting to '{self.tempdir}'.")
+                log.warning("Default tempdir '%(dft_dir)s' is not on the "
+                            "same filesystem with queue path '%(queue_path)s'"
+                            ",defaulting to '%(new_path)s'." % {
+                                "dft_dir": tempdir,
+                                "queue_path": self.path,
+                                "new_path": self.tempdir})
             os.close(fd)
             os.remove(tempdir)
-        self.info: dict = self._loadinfo()
+        self.info = self._loadinfo()
         # truncate head in case it contains garbage
         hnum, hcnt, hoffset = self.info['head']
         headfn = self._qfile(hnum)
@@ -88,19 +91,19 @@ class Queue:
             if hoffset < os.path.getsize(headfn):
                 _truncate(headfn, hoffset)
         # let the head file open
-        self.headf: BinaryIO = self._openchunk(hnum, 'ab+')
+        self.headf = self._openchunk(hnum, 'ab+')
         tnum, _, toffset = self.info['tail']
-        self.tailf: BinaryIO = self._openchunk(tnum)
+        self.tailf = self._openchunk(tnum)
         self.tailf.seek(toffset)
         # update unfinished tasks with the current number of enqueued tasks
-        self.unfinished_tasks: int = self.info['size']
-        self.update_info: bool = True
+        self.unfinished_tasks = self.info['size']
+        self.update_info = True
 
     def _init(self, maxsize: int) -> None:
-        self.mutex: threading.Lock = threading.Lock()
-        self.not_empty: threading.Condition = threading.Condition(self.mutex)
-        self.not_full: threading.Condition = threading.Condition(self.mutex)
-        self.all_tasks_done: threading.Condition = threading.Condition(
+        self.mutex = threading.Lock()
+        self.not_empty = threading.Condition(self.mutex)
+        self.not_full = threading.Condition(self.mutex)
+        self.all_tasks_done = threading.Condition(
             self.mutex)
         if not os.path.exists(self.path):
             os.makedirs(self.path)
@@ -123,7 +126,8 @@ class Queue:
     def full(self) -> bool:
         return self.qsize() == self.maxsize
 
-    def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None:
+    def put(self, item: Any, block: bool = True,
+            timeout: Optional[float] = None) -> None:
         self.not_full.acquire()
         try:
             if self.maxsize > 0:
