@@ -5,6 +5,7 @@ import persistqueue
 from .sqlbase import SQLBase
 from typing import Any, Optional
 
+
 class MySQLQueue(SQLBase):
     """Mysql(or future standard dbms) based FIFO queue."""
     _TABLE_NAME = 'queue'
@@ -31,13 +32,13 @@ class MySQLQueue(SQLBase):
     )
     _SQL_UPDATE = 'UPDATE {table_name} SET data = %s WHERE {key_column} = %s'
     _SQL_DELETE = 'DELETE FROM {table_name} WHERE {key_column} {op} %s'
-    
+
     def __init__(
-        self, 
-        host: str, 
-        user: str, 
-        passwd: str, 
-        db_name: str, 
+        self,
+        host: str,
+        user: str,
+        passwd: str,
+        db_name: str,
         name: Optional[str] = None,
         port: int = 3306,
         charset: str = 'utf8mb4',
@@ -84,6 +85,7 @@ class MySQLQueue(SQLBase):
         self._getter = self._putter
 
     def put(self, item: Any, block: bool = True) -> int:
+        # block kwarg is noop and only here to align with python's queue
         obj = self._serializer.dumps(item)
         _id = self._insert_into(obj, _time.time())
         self.total += 1
@@ -106,14 +108,19 @@ class MySQLQueue(SQLBase):
     def get_pooled_conn(self) -> Any:
         return self._connection_pool.connection()
 
+
 class MySQLConn:
     """MySqlConn defines a common structure for
     both mysql and sqlite3 connections.
     used to mitigate the interface differences between drivers/db
     """
+
     def __init__(self, queue: Optional[MySQLQueue] = None, conn: Optional[Any] = None) -> None:
         self._queue = queue
-        self._conn = conn if conn else (queue.get_pooled_conn() if queue else None)
+        if queue is not None:
+            self._conn = queue.get_pooled_conn()
+        else:
+            self._conn = conn
         self._cursor = None
         self.closed = False
 
@@ -122,10 +129,15 @@ class MySQLConn:
         return self._conn
 
     def __exit__(self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[Any]) -> None:
+        # do not commit() but to close() , keep same behavior
+        # with dbutils
         self._cursor.close()
 
     def execute(self, *args: Any, **kwargs: Any) -> Any:
-        conn = self._queue.get_pooled_conn() if self._queue else self._conn
+        if self._queue is not None:
+            conn = self._queue.get_pooled_conn()
+        else:
+            conn = self._conn        
         cursor = conn.cursor()
         cursor.execute(*args, **kwargs)
         return cursor
@@ -133,7 +145,7 @@ class MySQLConn:
     def close(self) -> None:
         if not self.closed:
             self._conn.close()
-            self.closed = True
+        self.closed = True
 
     def commit(self) -> None:
         if not self.closed:

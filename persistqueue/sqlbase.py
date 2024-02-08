@@ -82,8 +82,10 @@ class SQLBase(object):
         self.action_lock: threading.Lock = threading.Lock()  # Lock for atomic actions
         self.total: int = 0  # Total tasks
         self.cursor: int = 0  # Cursor for task processing
-        self._getter: Optional[sqlite3.Connection] = None  # Connection for getting tasks
-        self._putter: Optional[sqlite3.Connection] = None  # Connection for putting tasks
+        # Connection for getting tasks
+        self._getter: Optional[sqlite3.Connection] = None
+        # Connection for putting tasks
+        self._putter: Optional[sqlite3.Connection] = None
 
     @with_conditional_transaction
     def _insert_into(self, *record: Any) -> Tuple[str, Tuple[Any, ...]]:
@@ -349,7 +351,6 @@ class SQLiteBase(SQLBase):
     _SQL_SELECT_WHERE: str = ''  # SQL to select a record with criteria
     _SQL_DELETE: str = ''  # SQL to delete a record
     _MEMORY: str = ':memory:'  # flag indicating store DB in memory
-
 
     def __init__(self, path: str, name: str = 'default', multithreading: bool = False, timeout: float = 10.0,
                  auto_commit: bool = True, serializer: Any = persistqueue.serializers.pickle, db_file_name: Optional[str] = None) -> None:

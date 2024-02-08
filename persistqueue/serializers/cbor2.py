@@ -9,6 +9,7 @@ from typing import Any, BinaryIO
 # Define the Struct for prefixing serialized objects with their byte length
 length_struct = Struct("<L")
 
+
 def dump(value: Any, fp: BinaryIO, sort_keys: bool = False) -> None:
     """
     Serialize value as cbor2 to a byte-mode file object with a length prefix.
@@ -29,6 +30,7 @@ def dump(value: Any, fp: BinaryIO, sort_keys: bool = False) -> None:
     fp.write(length)
     fp.write(packed)
 
+
 def dumps(value: Any, sort_keys: bool = False) -> bytes:
     """
     Serialize value as cbor2 to bytes without length prefix.
@@ -45,6 +47,7 @@ def dumps(value: Any, sort_keys: bool = False) -> bytes:
         value = {key: value[key] for key in sorted(value)}
     return cbor2.dumps(value)
 
+
 def load(fp: BinaryIO) -> Any:
     """
     Deserialize one cbor2 value from a byte-mode file object using length prefix.
@@ -59,6 +62,7 @@ def load(fp: BinaryIO) -> Any:
     length = length_struct.unpack(fp.read(4))[0]
     # Read the serialized object using the determined length and deserialize it
     return cbor2.loads(fp.read(length))
+
 
 def loads(bytes_value: bytes) -> Any:
     """

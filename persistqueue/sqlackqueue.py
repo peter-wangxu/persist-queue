@@ -61,7 +61,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
 
     def __init__(self, path: str, auto_resume: bool = True, **kwargs):
-        super().__init__(path, **kwargs)
+        super(SQLiteAckQueue, self).__init__(path, **kwargs)
         if not self.auto_commit:
             warnings.warn("disable auto commit is not supported in ack queue")
             self.auto_commit = True
@@ -73,7 +73,8 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         unack_count = self.unack_count()
         if unack_count:
             log.info("resume %d unack tasks", unack_count)
-        sql = 'UPDATE {} set status = ? WHERE status = ?'.format(self._table_name)
+        sql = 'UPDATE {} set status = ? WHERE status = ?'.format(
+            self._table_name)
         with self.tran_lock:
             with self._putter as tran:
                 tran.execute(sql, (AckStatus.ready, AckStatus.unack,))
@@ -87,7 +88,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         return _id
 
     def _init(self) -> None:
-        super()._init()
+        super(SQLiteAckQueue, self)._init()
         self.action_lock = threading.Lock()
         self.total = self._count()
 
@@ -117,9 +118,11 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
     def ack_failed_count(self) -> int:
         return self._ack_count_via_status(AckStatus.ack_failed)
 
+    @sqlbase.with_conditional_transaction
     def _mark_ack_status(self, key: int, status: str) -> None:
-        self._sql_mark_ack_status, (status, key,)
+        return self._sql_mark_ack_status, (status, key,)
 
+    @sqlbase.with_conditional_transaction
     def clear_acked_data(
         self, max_delete: int = 1000, keep_latest: int = 1000, clear_ack_failed: bool = False
     ) -> None:
@@ -127,16 +130,18 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
         acked_to_delete = ''
         acked_to_keep = ''
         if self._MAX_ACKED_LENGTH != 1000 and not max_delete:
+            # Added for backward compatibility for
+            # those that set the _MAX_ACKED_LENGTH
             print(
                 "_MAX_ACKED_LENGTH has been deprecated.  Use clear_acked_data(keep_latest=1000, max_delete=1000)"
             )
             keep_latest = self._MAX_ACKED_LENGTH
         if clear_ack_failed:
-            acked_clear_all = 'OR status = ?' % AckStatus.ack_failed
+            acked_clear_all = 'OR status = %s' % AckStatus.ack_failed
         if max_delete and max_delete > 0:
-            acked_to_delete = 'LIMIT ?' % max_delete
+            acked_to_delete = 'LIMIT %d' % max_delete
         if keep_latest and keep_latest > 0:
-            acked_to_keep = 'OFFSET ?' % keep_latest
+            acked_to_keep = 'OFFSET %d' % keep_latest
         sql = """DELETE FROM {table_name}
             WHERE {key_column} IN (
                 SELECT _id FROM {table_name}
@@ -150,7 +155,7 @@ class SQLiteAckQueue(sqlbase.SQLiteBase):
             acked_to_keep=acked_to_keep,
             clear_ack_failed=acked_clear_all,
         )
-        self._getter.execute(sql, (AckStatus.acked,))
+        return sql, AckStatus.acked
 
     @property
     def _sql_mark_ack_status(self) -> str:

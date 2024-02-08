@@ -8,8 +8,9 @@ import logging
 log = logging.getLogger(__name__)
 
 # Retrieve the selected pickle protocol from a common utility module
-protocol: int =  4  # Python 3 uses protocol version 4 or higher
+protocol: int = 4  # Python 3 uses protocol version 4 or higher
 log.info(f"Selected pickle protocol: '{protocol}'")
+
 
 def dump(value: Any, fp: BinaryIO, sort_keys: bool = False) -> None:
     """
@@ -29,6 +30,7 @@ def dump(value: Any, fp: BinaryIO, sort_keys: bool = False) -> None:
         value = {key: value[key] for key in sorted(value)}
     pickle.dump(value, fp, protocol=protocol)
 
+
 def dumps(value: Any, sort_keys: bool = False) -> bytes:
     """
     Serialize value as pickle to bytes.
@@ -46,6 +48,7 @@ def dumps(value: Any, sort_keys: bool = False) -> bytes:
         value = {key: value[key] for key in sorted(value)}
     return pickle.dumps(value, protocol=protocol)
 
+
 def load(fp: BinaryIO) -> Any:
     """
     Deserialize one pickle value from a byte-mode file object.
@@ -57,6 +60,7 @@ def load(fp: BinaryIO) -> Any:
         The deserialized Python object.
     """
     return pickle.load(fp)
+
 
 def loads(bytes_value: bytes) -> Any:
     """

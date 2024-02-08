@@ -1,10 +1,10 @@
-# coding=utf-8
 import logging
 import sqlite3
 from persistqueue import sqlbase
 from typing import Any, Iterator
 
 log = logging.getLogger(__name__)
+
 
 class PDict(sqlbase.SQLiteBase, dict):
     _TABLE_NAME = 'dict'
@@ -16,7 +16,7 @@ class PDict(sqlbase.SQLiteBase, dict):
                    'WHERE {key_column} = ?')
     _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
     _SQL_DELETE = 'DELETE FROM {table_name} WHERE {key_column} {op} ?'
-    
+
     def __init__(self, path: str, name: str, multithreading: bool = False) -> None:
         # PDict is always auto_commit=True
         super().__init__(path, name=name, multithreading=multithreading, auto_commit=True)

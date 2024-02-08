@@ -9,6 +9,7 @@ from persistqueue import sqlbase
 sqlite3.enable_callback_tracebacks(True)
 log = logging.getLogger(__name__)
 
+
 class SQLiteQueue(sqlbase.SQLiteBase):
     """SQLite3 based FIFO queue."""
     _TABLE_NAME = 'queue'
@@ -38,6 +39,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
     _SQL_DELETE = 'DELETE FROM {table_name} WHERE {key_column} {op} ?'
 
     def put(self, item: Any, block: bool = True) -> int:
+        # block kwarg is noop and only here to align with python's queue
         obj = self._serializer.dumps(item)
         _id = self._insert_into(obj, _time.time())
         self.total += 1
@@ -48,7 +50,7 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         return self.put(item, block=False)
 
     def _init(self) -> None:
-        super()._init()
+        super(SQLiteQueue, self)._init()
         self.action_lock = threading.Lock()
         if not self.auto_commit:
             head = self._select()
@@ -58,7 +60,9 @@ class SQLiteQueue(sqlbase.SQLiteBase):
                 self.cursor = 0
         self.total = self._count()
 
+
 FIFOSQLiteQueue = SQLiteQueue
+
 
 class FILOSQLiteQueue(SQLiteQueue):
     """SQLite3 based FILO queue."""
@@ -68,6 +72,7 @@ class FILOSQLiteQueue(SQLiteQueue):
         'SELECT {key_column}, data FROM {table_name} '
         'ORDER BY {key_column} DESC LIMIT 1'
     )
+
 
 class UniqueQ(SQLiteQueue):
     _TABLE_NAME = 'unique_queue'

@@ -10,23 +10,26 @@ from typing import Any, Optional, Tuple, BinaryIO
 
 log = logging.getLogger(__name__)
 
+
 def _truncate(fn: str, length: int) -> None:
     """Truncate the file to a specified length."""
     with open(fn, 'ab+') as f:
         f.truncate(length)
 
+
 def atomic_rename(src: str, dst: str) -> None:
     """Atomically rename a file from src to dst."""
     os.replace(src, dst)
+
 
 class Queue:
     """Thread-safe, persistent queue."""
 
     def __init__(
-        self, 
-        path: str, 
-        maxsize: int = 0, 
-        chunksize: int = 100, 
+        self,
+        path: str,
+        maxsize: int = 0,
+        chunksize: int = 100,
         tempdir: Optional[str] = None,
         serializer: Any = persistqueue.serializers.pickle,
         autosave: bool = False
@@ -66,7 +69,8 @@ class Queue:
         self._init(maxsize)
         if self.tempdir:
             if os.stat(self.path).st_dev != os.stat(self.tempdir).st_dev:
-                raise ValueError("tempdir has to be located on same path filesystem")
+                raise ValueError(
+                    "tempdir has to be located on same path filesystem")
         else:
             fd, tempdir = tempfile.mkstemp()
             if os.stat(self.path).st_dev != os.stat(tempdir).st_dev:
@@ -83,10 +87,12 @@ class Queue:
         if os.path.exists(headfn):
             if hoffset < os.path.getsize(headfn):
                 _truncate(headfn, hoffset)
+        # let the head file open
         self.headf: BinaryIO = self._openchunk(hnum, 'ab+')
         tnum, _, toffset = self.info['tail']
         self.tailf: BinaryIO = self._openchunk(tnum)
         self.tailf.seek(toffset)
+        # update unfinished tasks with the current number of enqueued tasks
         self.unfinished_tasks: int = self.info['size']
         self.update_info: bool = True
 
@@ -94,7 +100,8 @@ class Queue:
         self.mutex: threading.Lock = threading.Lock()
         self.not_empty: threading.Condition = threading.Condition(self.mutex)
         self.not_full: threading.Condition = threading.Condition(self.mutex)
-        self.all_tasks_done: threading.Condition = threading.Condition(self.mutex)
+        self.all_tasks_done: threading.Condition = threading.Condition(
+            self.mutex)
         if not os.path.exists(self.path):
             os.makedirs(self.path)
 
@@ -256,6 +263,7 @@ class Queue:
         self._clear_tail_file()
 
     def _clear_tail_file(self) -> None:
+        """Remove the tail files whose items were already get."""
         tnum, _, _ = self.info['tail']
         while tnum >= 1:
             tnum -= 1
@@ -272,6 +280,7 @@ class Queue:
         return os.path.join(self.path, 'info')
 
     def __del__(self) -> None:
+        """Handles the removal of queue."""
         for to_close in self.headf, self.tailf:
             if to_close and not to_close.closed:
                 to_close.close()
