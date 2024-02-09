@@ -35,7 +35,7 @@ install:
   # We need wheel installed to build wheels
   - "%PYTHON%\\python.exe -m pip install tox"
 
-build: off
+build: false
 
 test_script:
   # Put your test command here.
