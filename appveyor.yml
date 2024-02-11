@@ -1,5 +1,20 @@
-services:
-  - mysql
+# image:
+#   - Visual Studio 2017 # contains python2.7 ~ python3.8 and mysql 5.7
+#   - Visual Studio 2022 # contains python3.7 ~ python3.12 and mysql 8.0
+
+# services: # mysql is now MySQL5.7 now for MySQL8.0
+#   - mysql
+init:
+  - ps: |
+      if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2022")
+      {
+        Start-Service MySQL80
+      }
+      else
+      {
+        Start-Service MySQL57
+      }
+
 
 environment:
 
@@ -12,36 +27,48 @@ environment:
   - TOXENV: "pep8"
     PYTHON: "C:\\Python35-x64"
     DISTUTILS_USE_SDK: "1"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+
   # - TOXENV: "py27"
   #   PYTHON: "C:\\Python27-x64"
   #   DISTUTILS_USE_SDK: "1"
   - TOXENV: "py35"
     PYTHON: "C:\\Python35-x64"
     DISTUTILS_USE_SDK: "1"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+
   - TOXENV: "py36"
     PYTHON: "C:\\Python36-x64"
     DISTUTILS_USE_SDK: "1"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   - TOXENV: "py37"
     PYTHON: "C:\\Python37-x64"
     DISTUTILS_USE_SDK: "1"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   - TOXENV: "py38"
     PYTHON: "C:\\Python38-x64"
     DISTUTILS_USE_SDK: "1"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   - TOXENV: "py39"
     PYTHON: "C:\\Python39-x64"
     DISTUTILS_USE_SDK: "1"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
   - TOXENV: "py310"
     PYTHON: "C:\\Python310-x64"
     DISTUTILS_USE_SDK: "1"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
   - TOXENV: "py311"
     PYTHON: "C:\\Python311-x64"
     DISTUTILS_USE_SDK: "1"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
   - TOXENV: "py312"
     PYTHON: "C:\\Python312-x64"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
     DISTUTILS_USE_SDK: "1"
   - TOXENV: "cover"
     PYTHON: "C:\\Python36-x64"
     DISTUTILS_USE_SDK: "1"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
 install:
   # We need wheel installed to build wheels
@@ -58,10 +85,22 @@ test_script:
   # the interpreter you're using - Appveyor does not do anything special
   # to put the Python evrsion you want to use on PATH.
   - ps: |
-      $env:MYSQL_PWD="Password12!"
-      $cmd = '"C:\Program Files\MySQL\MySQL Server 5.7\bin\mysql" -e "create database testqueue;" --user=root'
-      iex "& $cmd"
-  - "%PYTHON%\\Scripts\\tox.exe"
+      if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2017")
+      {
+        $env:MYSQL_PWD="Password12!"
+        $cmd = '"C:\Program Files\MySQL\MySQL Server 5.7\bin\mysql" -e "create database testqueue;" --user=root'
+        iex "& $cmd"
+      }
+      else
+      {
+        $env:MYSQL_PWD="Password12!"
+        $cmd = '"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql" -e "create database testqueue;" --user=root'
+        iex "& $cmd"
+      }
+
+  - |
+    echo image: %APPVEYOR_BUILD_WORKER_IMAGE%, tox:%TOXENV%
+    "%PYTHON%\\Scripts\\tox.exe"
 
 #on_success:
 #  You can use this step to upload your artifacts to a public website.
