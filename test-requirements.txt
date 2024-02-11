@@ -8,3 +8,4 @@ coverage!=4.5
 cov_core>=1.15.0
 virtualenv>=15.1.0
 cryptography;sys_platform!="win32" # package only required for tests under mysql8.0&linux
+dnspython>=2.6.0rc1 # not directly required, pinned by Snyk to avoid a vulnerability
