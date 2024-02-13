@@ -1,23 +1,17 @@
-# coding=utf-8
-
 """A thread-safe sqlite3 based persistent queue in Python."""
-
 import logging
 import sqlite3
 import time as _time
 import threading
-
-
+from typing import Any
 from persistqueue import sqlbase
 
 sqlite3.enable_callback_tracebacks(True)
-
 log = logging.getLogger(__name__)
 
 
 class SQLiteQueue(sqlbase.SQLiteBase):
     """SQLite3 based FIFO queue."""
-
     _TABLE_NAME = 'queue'
     _KEY_COLUMN = '_id'  # the name of the key column, used in DB CRUD
     # SQL to create a table
@@ -42,10 +36,9 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         ' {column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
     )
     _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
-
     _SQL_DELETE = 'DELETE FROM {table_name} WHERE {key_column} {op} ?'
 
-    def put(self, item, block=True):
+    def put(self, item: Any, block: bool = True) -> int:
         # block kwarg is noop and only here to align with python's queue
         obj = self._serializer.dumps(item)
         _id = self._insert_into(obj, _time.time())
@@ -53,15 +46,13 @@ class SQLiteQueue(sqlbase.SQLiteBase):
         self.put_event.set()
         return _id
 
-    def put_nowait(self, item):
+    def put_nowait(self, item: Any) -> int:
         return self.put(item, block=False)
 
-    def _init(self):
+    def _init(self) -> None:
         super(SQLiteQueue, self)._init()
-        # Action lock to assure multiple action to be *atomic*
         self.action_lock = threading.Lock()
         if not self.auto_commit:
-            # Refresh current cursor after restart
             head = self._select()
             if head:
                 self.cursor = head[0] - 1
@@ -75,7 +66,6 @@ FIFOSQLiteQueue = SQLiteQueue
 
 class FILOSQLiteQueue(SQLiteQueue):
     """SQLite3 based FILO queue."""
-
     _TABLE_NAME = 'filo_queue'
     # SQL to select a record
     _SQL_SELECT = (
@@ -92,7 +82,7 @@ class UniqueQ(SQLiteQueue):
         'data BLOB, timestamp FLOAT, UNIQUE (data))'
     )
 
-    def put(self, item):
+    def put(self, item: Any) -> Any:
         obj = self._serializer.dumps(item, sort_keys=True)
         _id = None
         try:

@@ -291,7 +291,7 @@ class PersistTest(unittest.TestCase):
 
         # test that protocol is used properly
         serializer = namedtuple("Serializer", ["dump", "load"])(
-                serializers_pickle.dump, lambda fp: fp.read())
+            serializers_pickle.dump, lambda fp: fp.read())
 
         q = Queue(path=self.path, serializer=serializer)
         q.put(b'a')

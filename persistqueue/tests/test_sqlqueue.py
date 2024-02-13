@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from threading import Thread
 
-from persistqueue import SQLiteQueue, FILOSQLiteQueue, UniqueQ
 from persistqueue import Empty
+from persistqueue import SQLiteQueue, FILOSQLiteQueue, UniqueQ
 from persistqueue.serializers import json as serializers_json
 from persistqueue.serializers import pickle as serializers_pickle
 from persistqueue.serializers import msgpack as serializers_msgpack

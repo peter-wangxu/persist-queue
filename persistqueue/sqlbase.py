@@ -1,24 +1,22 @@
-# coding=utf-8
 import logging
 import os
 import time as _time
 import sqlite3
 import threading
+from typing import Any, Callable, Tuple, Optional
 
 from persistqueue.exceptions import Empty
-
 import persistqueue.serializers.pickle
 
 sqlite3.enable_callback_tracebacks(True)
-
 log = logging.getLogger(__name__)
 
-# 10 seconds internal for `wait` of event
+# 10 seconds interval for `wait` of event
 TICK_FOR_WAIT = 10
 
 
-def with_conditional_transaction(func):
-    def _execute(obj, *args, **kwargs):
+def with_conditional_transaction(func: Callable) -> Callable:
+    def _execute(obj: 'SQLBase', *args: Any, **kwargs: Any) -> Any:
         # for MySQL, connection pool should be used since db connection is
         # basically not thread-safe
         _putter = obj._putter
@@ -44,7 +42,7 @@ def with_conditional_transaction(func):
     return _execute
 
 
-def commit_ignore_error(conn):
+def commit_ignore_error(conn: sqlite3.Connection) -> None:
     """Ignore the error of no transaction is active.
 
     The transaction may be already committed by user's task_done call.
@@ -65,6 +63,7 @@ def commit_ignore_error(conn):
 class SQLBase(object):
     """SQL base class."""
 
+    """SQL base class."""
     _TABLE_NAME = 'base'  # DB table name
     _KEY_COLUMN = ''  # the name of the key column, used in DB CRUD
     _SQL_CREATE = ''  # SQL to create a table
@@ -74,41 +73,41 @@ class SQLBase(object):
     _SQL_SELECT_ID = ''  # SQL to select a record with criteria
     _SQL_SELECT_WHERE = ''  # SQL to select a record with criteria
     _SQL_DELETE = ''  # SQL to delete a record
-    # _MEMORY = ':memory:'  # flag indicating store DB in memory
 
-    def __init__(self):
-        """Initiate a queue in db.
-        """
-        self._serializer = None
-        self.auto_commit = None
-
+    def __init__(self) -> None:
+        self._serializer = persistqueue.serializers.pickle
+        self.auto_commit = True  # Transaction commit behavior
         # SQL transaction lock
         self.tran_lock = threading.Lock()
+        # Event signaling new data
         self.put_event = threading.Event()
-        # Action lock to assure multiple action to be *atomic*
+        # Lock for atomic actions
         self.action_lock = threading.Lock()
-        self.total = 0
-        self.cursor = 0
+        self.total = 0  # Total tasks
+        self.cursor = 0  # Cursor for task processing
+        # Connection for getting tasks
         self._getter = None
+        # Connection for putting tasks
         self._putter = None
 
     @with_conditional_transaction
-    def _insert_into(self, *record):
+    def _insert_into(self, *record: Any) -> Tuple[str, Tuple[Any, ...]]:
         return self._sql_insert, record
 
     @with_conditional_transaction
-    def _update(self, key, *args):
+    def _update(self, key: Any, *args: Any) -> Tuple[str, Tuple[Any, ...]]:
         args = list(args) + [key]
         return self._sql_update, args
 
     @with_conditional_transaction
-    def _delete(self, key, op='='):
+    def _delete(self, key: Any, op: str = '=') -> Tuple[str, Tuple[Any, ...]]:
 
         sql = self._SQL_DELETE.format(
             table_name=self._table_name, key_column=self._key_column, op=op)
         return sql, (key,)
 
-    def _pop(self, rowid=None, raw=False):
+    def _pop(self, rowid: Optional[int] = None, raw: bool = False
+             ) -> Optional[Any]:
         with self.action_lock:
             if self.auto_commit:
                 row = self._select(rowid=rowid)
@@ -144,7 +143,7 @@ class SQLBase(object):
                         return item
             return None
 
-    def update(self, item, id=None):
+    def update(self, item: Any, id: Optional[int] = None) -> int:
         if isinstance(item, dict) and "pqid" in item:
             _id = item.get("pqid")
             item = item.get("data")
@@ -156,7 +155,9 @@ class SQLBase(object):
         self._update(_id, obj)
         return _id
 
-    def get(self, block=True, timeout=None, id=None, raw=False):
+    def get(self, block: bool = True, timeout: Optional[float] = None,
+            id: Optional[int] = None, raw: bool = False
+            ) -> Any:
         if isinstance(id, dict) and "pqid" in id:
             rowid = id.get("pqid")
         elif isinstance(id, int):
@@ -191,16 +192,16 @@ class SQLBase(object):
                 serialized = self._pop(raw=raw, rowid=rowid)
         return serialized
 
-    def get_nowait(self, id=None, raw=False):
+    def get_nowait(self, id: Optional[int] = None, raw: bool = False) -> Any:
         return self.get(block=False, id=id, raw=raw)
 
-    def task_done(self):
+    def task_done(self) -> None:
         """Persist the current state if auto_commit=False."""
         if not self.auto_commit:
             self._delete(self.cursor, op='<=')
             self._task_done()
 
-    def queue(self):
+    def queue(self) -> Any:
         rows = self._sql_queue().fetchall()
         datarows = []
         for row in rows:
@@ -213,27 +214,27 @@ class SQLBase(object):
         return datarows
 
     @with_conditional_transaction
-    def shrink_disk_usage(self):
+    def shrink_disk_usage(self) -> Tuple[str, Tuple[()]]:
         sql = """VACUUM"""
         return sql, ()
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self.total
 
-    def qsize(self):
+    def qsize(self) -> int:
         return max(0, self.size)
 
-    def empty(self):
+    def empty(self) -> bool:
         return self.size == 0
 
-    def full(self):
+    def full(self) -> bool:
         return False
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.size
 
-    def _select(self, *args, **kwargs):
+    def _select(self, *args, **kwargs) -> Any:
         start_key = self._start_key()
         op = kwargs.get('op', None)
         column = kwargs.get('column', None)
@@ -266,68 +267,68 @@ class SQLBase(object):
             result = self._select(*args, **kwargs)
         return result
 
-    def _count(self):
+    def _count(self) -> int:
         sql = 'SELECT COUNT({}) FROM {}'.format(
             self._key_column, self._table_name
         )
         row = self._getter.execute(sql).fetchone()
         return row[0] if row else 0
 
-    def _start_key(self):
+    def _start_key(self) -> int:
         if self._TABLE_NAME == 'ack_filo_queue':
             return 9223372036854775807  # maxsize
         else:
             return 0
 
-    def _task_done(self):
+    def _task_done(self) -> None:
         """Only required if auto-commit is set as False."""
         commit_ignore_error(self._putter)
 
-    def _sql_queue(self):
+    def _sql_queue(self) -> Any:
         sql = 'SELECT * FROM {}'.format(self._table_name)
         return self._getter.execute(sql)
 
     @property
-    def _table_name(self):
+    def _table_name(self) -> str:
         return '`{}_{}`'.format(self._TABLE_NAME, self.name)
 
     @property
-    def _key_column(self):
+    def _key_column(self) -> str:
         return self._KEY_COLUMN
 
     @property
-    def _sql_create(self):
+    def _sql_create(self) -> str:
         return self._SQL_CREATE.format(
             table_name=self._table_name, key_column=self._key_column
         )
 
     @property
-    def _sql_insert(self):
+    def _sql_insert(self) -> str:
         return self._SQL_INSERT.format(
             table_name=self._table_name, key_column=self._key_column
         )
 
     @property
-    def _sql_update(self):
+    def _sql_update(self) -> str:
         return self._SQL_UPDATE.format(
             table_name=self._table_name, key_column=self._key_column
         )
 
-    def _sql_select_id(self, rowid):
+    def _sql_select_id(self, rowid) -> str:
         return self._SQL_SELECT_ID.format(
             table_name=self._table_name,
             key_column=self._key_column,
             rowid=rowid,
         )
 
-    def _sql_select(self, rowid):
+    def _sql_select(self, rowid) -> str:
         return self._SQL_SELECT.format(
             table_name=self._table_name,
             key_column=self._key_column,
             rowid=rowid,
         )
 
-    def _sql_select_where(self, rowid, op, column):
+    def _sql_select_where(self, rowid, op, column) -> str:
         return self._SQL_SELECT_WHERE.format(
             table_name=self._table_name,
             key_column=self._key_column,
@@ -336,7 +337,7 @@ class SQLBase(object):
             column=column,
         )
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Handles sqlite connection when queue was deleted"""
         if self._getter:
             self._getter.close()
@@ -346,7 +347,6 @@ class SQLBase(object):
 
 class SQLiteBase(SQLBase):
     """SQLite3 base class."""
-
     _TABLE_NAME = 'base'  # DB table name
     _KEY_COLUMN = ''  # the name of the key column, used in DB CRUD
     _SQL_CREATE = ''  # SQL to create a table
@@ -358,16 +358,11 @@ class SQLiteBase(SQLBase):
     _SQL_DELETE = ''  # SQL to delete a record
     _MEMORY = ':memory:'  # flag indicating store DB in memory
 
-    def __init__(
-            self,
-            path,
-            name='default',
-            multithreading=False,
-            timeout=10.0,
-            auto_commit=True,
-            serializer=persistqueue.serializers.pickle,
-            db_file_name=None,
-    ):
+    def __init__(self, path: str, name: str = 'default',
+                 multithreading: bool = False, timeout: float = 10.0,
+                 auto_commit: bool = True,
+                 serializer: Any = persistqueue.serializers.pickle,
+                 db_file_name: Optional[str] = None) -> None:
         """Initiate a queue in sqlite3 or memory.
 
         :param path: path for storing DB file.
@@ -404,7 +399,7 @@ class SQLiteBase(SQLBase):
             self.db_file_name = db_file_name
         self._init()
 
-    def _init(self):
+    def _init(self) -> None:
         """Initialize the tables in DB."""
         if self.path == self._MEMORY:
             self.memory_sql = True
@@ -435,7 +430,8 @@ class SQLiteBase(SQLBase):
         self.tran_lock = threading.Lock()
         self.put_event = threading.Event()
 
-    def _new_db_connection(self, path, multithreading, timeout):
+    def _new_db_connection(self, path, multithreading, timeout
+                           ) -> sqlite3.Connection:
         conn = None
         if path == self._MEMORY:
             conn = sqlite3.connect(path, check_same_thread=not multithreading)
@@ -448,11 +444,11 @@ class SQLiteBase(SQLBase):
         conn.execute('PRAGMA journal_mode=WAL;')
         return conn
 
-    def close(self):
+    def close(self) -> None:
         """Closes sqlite connections"""
         self._getter.close()
         self._putter.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Handles sqlite connection when queue was deleted"""
         self.close()
