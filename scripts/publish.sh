@@ -8,7 +8,7 @@ if [[ "$NAME" != "persist-queue" ]];then
 fi
 rm -rf ./build/*.* ./dist/*.*
 python setup.py build sdist
-python setup.py build bdist_wheel
+python setup.py build bdist_wheel # requires `pip install wheel`
 twine check ${BASE_DIR}/dist/*.tar.gz
 twine check ${BASE_DIR}/dist/*.whl
 twine upload ${BASE_DIR}/dist/*
