@@ -13,6 +13,9 @@ persist-queue - A thread-safe, disk-based queue for Python
 .. image:: https://img.shields.io/pypi/v/persist-queue.svg
     :target: https://pypi.python.org/pypi/persist-queue
 
+.. image:: https://img.shields.io/pypi/pyversions/persist-queue
+   :alt: PyPI - Python Version
+
 ``persist-queue`` implements a file-based queue and a serial of sqlite3-based queues. The goals is to achieve following requirements:
 
 * Disk-based: each queued item should be stored in disk in case of any crash.
@@ -41,8 +44,8 @@ Join `persist-queue <https://join.slack
 
 Requirements
 ------------
-* Python 2.7 or Python 3.x (refer to `Deprecation`_ for future plan)
-* Full support for Linux, Windows and MacOS.
+* Python 3.5 or newer versions (refer to `Deprecation`_ for older Python versions)
+* Full support for Linux and MacOS.
 * Windows support (with `Caution`_ if ``persistqueue.Queue`` is used).
 
 Features
@@ -55,7 +58,7 @@ Features
 
 Deprecation
 -----------
-- `Python 2 was sunset on January 1, 2020 <https://www.python.org/doc/sunset-python-2/>`_, `persist-queue` will drop any Python 2 support in future version `1.0.0`, no new feature will be developed under Python 2.
+- `persist-queue` drops Python 2 support since version `1.0.0`, no new feature will be developed under Python 2 as `Python 2 was sunset on January 1, 2020 <https://www.python.org/doc/sunset-python-2/>`_.
 - `Python 3.4 release has reached end of life <https://www.python.org/downloads/release/python-3410/>`_ and
   `DBUtils <https://webwareforpython.github.io/DBUtils/changelog.html>`_ ceased support for `Python 3.4`, `persist queue` drops MySQL based queue for python 3.4 since version 0.8.0.
   other queue implementations such as file based queue and sqlite3 based queue are still workable.
