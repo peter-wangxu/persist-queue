@@ -446,8 +446,10 @@ class SQLiteBase(SQLBase):
 
     def close(self) -> None:
         """Closes sqlite connections"""
-        self._getter.close()
-        self._putter.close()
+        if self._getter is not None:
+            self._getter.close()
+        if self._putter is not None:
+            self._putter.close()
 
     def __del__(self) -> None:
         """Handles sqlite connection when queue was deleted"""
