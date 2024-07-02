@@ -50,66 +50,6 @@ jobs:
       - store_artifacts:
           path: htmlcov
 
-  py34:
-    docker:
-      # Primary container image where all steps run.
-      - image: circleci/python:3.4.10
-        environment:
-          TOXENV: py34
-      # MySQL env for mysql queue tests
-      - image: circleci/mysql:8.0
-        environment:
-          MYSQL_ROOT_PASSWORD: 123456
-          MYSQL_DATABASE: testqueue
-          MYSQL_USER: user
-          MYSQL_PASSWORD: passw0rd
-    steps: *common_steps
-
-  py35:
-    docker:
-      # Primary container image where all steps run.
-      - image: circleci/python:3.5.9
-        environment:
-          TOXENV: py35
-      # MySQL env for mysql queue tests
-      - image: circleci/mysql:8.0
-        environment:
-          MYSQL_ROOT_PASSWORD: 123456
-          MYSQL_DATABASE: testqueue
-          MYSQL_USER: user
-          MYSQL_PASSWORD: passw0rd
-    steps: *common_steps
-
-  py36:
-    docker:
-      # Primary container image where all steps run.
-      - image: circleci/python:3.6.10
-        environment:
-          TOXENV: py36
-      # MySQL env for mysql queue tests
-      - image: circleci/mysql:8.0
-        environment:
-          MYSQL_ROOT_PASSWORD: 123456
-          MYSQL_DATABASE: testqueue
-          MYSQL_USER: user
-          MYSQL_PASSWORD: passw0rd
-    steps: *common_steps
-
-  py37:
-    docker:
-      # Primary container image where all steps run.
-      - image: circleci/python:3.7.7
-        environment:
-          TOXENV: py37
-      # MySQL env for mysql queue tests
-      - image: circleci/mysql:8.0
-        environment:
-          MYSQL_ROOT_PASSWORD: 123456
-          MYSQL_DATABASE: testqueue
-          MYSQL_USER: user
-          MYSQL_PASSWORD: passw0rd
-    steps: *common_steps
-
   py38:
     docker:
       # Primary container image where all steps run.
@@ -184,7 +124,7 @@ jobs:
   pep8:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:3.5.9
+      - image: cimg/python:3.8
         environment:
           TOXENV: pep8
       # MySQL env for mysql queue tests
@@ -200,7 +140,7 @@ jobs:
   cover:
     docker:
       # Primary container image where all steps run.
-      - image: circleci/python:3.5.9
+      - image: cimg/python:3.8
         environment:
           TOXENV: cover
       # MySQL env for mysql queue tests
@@ -217,11 +157,6 @@ workflows:
   build:
     jobs:
       - pep8
-      # - py27
-      # - py34
-      - py35
-      - py36
-      - py37
       - py38
       - py39
       - py310
