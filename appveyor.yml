@@ -25,26 +25,26 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
   - TOXENV: "pep8"
-    PYTHON: "C:\\Python35-x64"
+    PYTHON: "C:\\Python38-x64"
     DISTUTILS_USE_SDK: "1"
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
   # - TOXENV: "py27"
   #   PYTHON: "C:\\Python27-x64"
   #   DISTUTILS_USE_SDK: "1"
-  - TOXENV: "py35"
-    PYTHON: "C:\\Python35-x64"
-    DISTUTILS_USE_SDK: "1"
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  # - TOXENV: "py35"
+  #   PYTHON: "C:\\Python35-x64"
+  #   DISTUTILS_USE_SDK: "1"
+  #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
-  - TOXENV: "py36"
-    PYTHON: "C:\\Python36-x64"
-    DISTUTILS_USE_SDK: "1"
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-  - TOXENV: "py37"
-    PYTHON: "C:\\Python37-x64"
-    DISTUTILS_USE_SDK: "1"
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  # - TOXENV: "py36"
+  #   PYTHON: "C:\\Python36-x64"
+  #   DISTUTILS_USE_SDK: "1"
+  #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  # - TOXENV: "py37"
+  #   PYTHON: "C:\\Python37-x64"
+  #   DISTUTILS_USE_SDK: "1"
+  #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   - TOXENV: "py38"
     PYTHON: "C:\\Python38-x64"
     DISTUTILS_USE_SDK: "1"
@@ -66,7 +66,7 @@ environment:
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
     DISTUTILS_USE_SDK: "1"
   - TOXENV: "cover"
-    PYTHON: "C:\\Python36-x64"
+    PYTHON: "C:\\Python38-x64"
     DISTUTILS_USE_SDK: "1"
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
