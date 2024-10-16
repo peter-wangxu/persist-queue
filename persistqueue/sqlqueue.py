@@ -81,7 +81,8 @@ class UniqueQ(SQLiteQueue):
         '{key_column} INTEGER PRIMARY KEY AUTOINCREMENT, '
         'data BLOB, timestamp FLOAT, UNIQUE (data))'
     )
-
+    def put_nowait(self, item: Any) -> int:
+        return self.put(item)
     def put(self, item: Any) -> Any:
         obj = self._serializer.dumps(item, sort_keys=True)
         _id = None
