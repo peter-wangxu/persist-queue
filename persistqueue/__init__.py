@@ -17,6 +17,7 @@ try:
         FILOSQLiteQueue,
         UniqueQ
     )
+    from .priorityqueue import PriorityQueue  # 新增优先级队列
     from .sqlackqueue import (  # noqa: F401
         SQLiteAckQueue,
         FIFOSQLiteAckQueue,
@@ -49,6 +50,7 @@ __all__ = [
     "UniqueAckQ",
     "AckStatus",
     "MySQLQueue",
+    "PriorityQueue",  # 新增优先级队列
     "Empty",
     "Full",
     "__author__",
