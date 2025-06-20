@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from persistqueue import PriorityQueue, Empty
 
+
 class PriorityQueueTest(unittest.TestCase):
     def setUp(self):
         self.path = tempfile.mkdtemp(suffix='priorityqueue')
@@ -42,4 +43,4 @@ class PriorityQueueTest(unittest.TestCase):
         self.queue.get()
         self.assertEqual(self.queue.qsize(), 1)
         self.queue.get()
-        self.assertEqual(self.queue.qsize(), 0) 
+        self.assertEqual(self.queue.qsize(), 0)

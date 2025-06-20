@@ -8,6 +8,7 @@ from persistqueue import sqlbase
 sqlite3.enable_callback_tracebacks(True)
 log = logging.getLogger(__name__)
 
+
 class PriorityQueue(sqlbase.SQLiteBase):
     """SQLite3 based Priority queue."""
     _TABLE_NAME = 'priority_queue'
@@ -19,11 +20,14 @@ class PriorityQueue(sqlbase.SQLiteBase):
         'data BLOB, timestamp FLOAT, priority INTEGER)'
     )
     # SQL to insert a record
-    _SQL_INSERT = 'INSERT INTO {table_name} (data, timestamp, priority) VALUES (?, ?, ?)'  # noqa
+    _SQL_INSERT = (
+        'INSERT INTO {table_name} (data, timestamp, priority) '
+        'VALUES (?, ?, ?)'
+    )
     # SQL to select a record by id
     _SQL_SELECT_ID = (
-        'SELECT {key_column}, data, timestamp, priority FROM {table_name} WHERE'
-        ' {key_column} = {rowid}'
+        'SELECT {key_column}, data, timestamp, priority FROM {table_name} '
+        'WHERE {key_column} = {rowid}'
     )
     # SQL to select the highest priority record
     _SQL_SELECT = (
@@ -32,8 +36,8 @@ class PriorityQueue(sqlbase.SQLiteBase):
     )
     # SQL to select with condition
     _SQL_SELECT_WHERE = (
-        'SELECT {key_column}, data, timestamp, priority FROM {table_name} WHERE'
-        ' {column} {op} ? ORDER BY priority ASC, timestamp ASC LIMIT 1 '
+        'SELECT {key_column}, data, timestamp, priority FROM {table_name} '
+        'WHERE {column} {op} ? ORDER BY priority ASC, timestamp ASC LIMIT 1 '
     )
     _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
     _SQL_DELETE = 'DELETE FROM {table_name} WHERE {key_column} {op} ?'
@@ -58,4 +62,4 @@ class PriorityQueue(sqlbase.SQLiteBase):
                 self.cursor = head[0] - 1
             else:
                 self.cursor = 0
-        self.total = self._count() 
+        self.total = self._count()

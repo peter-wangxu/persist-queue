@@ -206,6 +206,40 @@ This queue does not allow duplicate items.
    2
    >>>
 
+Example usage of SQLite3 based ``PriorityQueue``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``PriorityQueue`` supports a priority field. The smaller the value, the higher the priority. When retrieving items, the one with the highest priority (smallest value) is returned first. Other behaviors are similar to ``SQLiteQueue``.
+
+.. code-block:: python
+
+    >>> import persistqueue
+    >>> q = persistqueue.PriorityQueue('mypath')
+    >>> q.put('low', priority=10)
+    >>> q.put('high', priority=1)
+    >>> q.put('mid', priority=5)
+    >>> q.get()
+    'high'
+    >>> q.get()
+    'mid'
+    >>> q.get()
+    'low'
+    >>> q.empty()
+    True
+
+**Parameters:**
+
+- ``put(item, priority=0)``  
+  Add an item to the queue. ``priority`` is an integer; the smaller the value, the higher the priority. Default is 0.
+
+- ``put_nowait(item, priority=0)``  
+  Add an item to the queue without blocking. Same parameters as above.
+
+- ``get()``  
+  Retrieve the item with the highest priority (smallest priority value, earliest timestamp if equal).
+
+Other methods such as ``empty()``, ``qsize()``, and ``full()`` behave the same as in ``SQLiteQueue``.
+
 Example usage of SQLite3 based ``SQLiteAckQueue``/``UniqueAckQ``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The core functions:
