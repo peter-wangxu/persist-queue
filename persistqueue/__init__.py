@@ -17,6 +17,7 @@ try:
         FILOSQLiteQueue,
         UniqueQ
     )
+    from .priorityqueue import PriorityQueue
     from .sqlackqueue import (  # noqa: F401
         SQLiteAckQueue,
         FIFOSQLiteAckQueue,
@@ -49,6 +50,7 @@ __all__ = [
     "UniqueAckQ",
     "AckStatus",
     "MySQLQueue",
+    "PriorityQueue",
     "Empty",
     "Full",
     "__author__",
