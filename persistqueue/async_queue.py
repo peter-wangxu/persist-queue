@@ -61,18 +61,18 @@ class AsyncQueue:
         self.serializer = serializer
         self.autosave = autosave
         self._init(maxsize)
-        
+
         if self.tempdir:
             if os.stat(self.path).st_dev != os.stat(self.tempdir).st_dev:
                 raise ValueError("tempdir must be located on the same "
-                               "filesystem as queue path")
+                                 "filesystem as queue path")
         else:
             fd, tempdir = tempfile.mkstemp()
             if os.stat(self.path).st_dev != os.stat(tempdir).st_dev:
                 self.tempdir = self.path
                 log.warning("Default tempdir '%(dft_dir)s' is not on the "
-                           "same filesystem with queue path '%(queue_path)s'"
-                           ", defaulting to '%(new_path)s'." % {
+                            "same filesystem with queue path '%(queue_path)s'"
+                            ", defaulting to '%(new_path)s'." % {
                                "dft_dir": tempdir,
                                "queue_path": self.path,
                                "new_path": self.tempdir})
@@ -157,7 +157,8 @@ class AsyncQueue:
                         remaining = endtime - _time()
                         if remaining <= 0.0:
                             raise Full
-                        await asyncio.wait_for(self._not_full.wait(), remaining)
+                        await asyncio.wait_for(
+                            self._not_full.wait(), remaining)
             await self._put(item)
             self.unfinished_tasks += 1
             self._not_empty.notify()

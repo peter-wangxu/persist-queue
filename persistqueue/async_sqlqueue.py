@@ -31,7 +31,7 @@ class AsyncSQLiteQueue:
     )
     _SQL_SELECT_WHERE = (
         'SELECT {key_column}, data, timestamp FROM {table_name} WHERE '
-        '{column} {op} ? ORDER BY {key_column} ASC LIMIT 1 '
+        '{column} {op} ? ORDER BY {key_column} ASC LIMIT 1'
     )
     _SQL_UPDATE = 'UPDATE {table_name} SET data = ? WHERE {key_column} = ?'
     _SQL_DELETE = 'DELETE FROM {table_name} WHERE {key_column} {op} ?'
@@ -69,7 +69,7 @@ class AsyncSQLiteQueue:
                 )
             )
             await self._conn.commit()
-            
+
             if not self.auto_commit:
                 head = await self._select()
                 if head:
@@ -91,7 +91,8 @@ class AsyncSQLiteQueue:
 
         Args:
             item: Item to put into queue
-            block: Whether to block (ignored for compatibility with Python queue API)
+            block: Whether to block (
+                   ignored for compatibility with Python queue API)
 
         Returns:
             ID of inserted record
@@ -168,7 +169,9 @@ class AsyncSQLiteQueue:
                 serialized = await self._pop(raw=raw, rowid=rowid)
         return serialized
 
-    async def get_nowait(self, id: Optional[int] = None, raw: bool = False) -> Any:
+    async def get_nowait(self,
+                         id: Optional[int] = None,
+                         raw: bool = False) -> Any:
         """Non-blocking get."""
         return await self.get(block=False, id=id, raw=raw)
 
@@ -216,7 +219,7 @@ class AsyncSQLiteQueue:
         rowid = kwargs.get('rowid')
         op = kwargs.get('op', '=')
         column = kwargs.get('column', self._KEY_COLUMN)
-        
+
         if rowid is not None:
             sql = self._SQL_SELECT_WHERE.format(
                 table_name=self._table_name,
@@ -231,7 +234,7 @@ class AsyncSQLiteQueue:
                 key_column=self._key_column
             )
             cursor = await self._conn.execute(sql)
-        
+
         row = await cursor.fetchone()
         await cursor.close()
         return row
@@ -266,7 +269,7 @@ class AsyncSQLiteQueue:
             _id = id
         if _id is None:
             raise ValueError("Provide id or raw item")
-        
+
         await self._init()
         obj = self._serializer.dumps(item)
         await self._update(_id, obj)
@@ -351,4 +354,4 @@ class AsyncUniqueQ(AsyncSQLiteQueue):
             else:
                 self.total += 1
                 self._put_event.set()
-            return _id 
+            return _id

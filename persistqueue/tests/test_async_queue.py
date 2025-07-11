@@ -176,7 +176,7 @@ class TestAsyncSQLiteQueue:
 
                 # Update data
                 await queue.update({"name": "updated", "value": 2},
-                                 item_id)
+                                   item_id)
 
                 # Get updated data
                 item = await queue.get()
@@ -235,4 +235,4 @@ class TestAsyncSQLiteQueue:
 
 if __name__ == "__main__":
     # Run tests
-    pytest.main([__file__]) 
+    pytest.main([__file__])
