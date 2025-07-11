@@ -74,6 +74,8 @@ from pypi
     pip install persist-queue
     # for msgpack, cbor and mysql support, use following command
     pip install "persist-queue[extra]"
+    # for async support, use following command
+    pip install "persist-queue[async]"
 
 
 from source code
@@ -394,6 +396,77 @@ used to ``join()`` against the queue.
 
 After exiting and restarting the queue from the same path, only the second item
 remains:
+
+Asynchronous API
+^^^^^^^^^^^^^^^
+
+*Available since: v1.0.0*
+
+Since file I/O is inherently asynchronous, we provide async versions of the API that can better utilize asynchronous programming models. The async API maintains compatibility with existing synchronous APIs while providing better performance and concurrency handling.
+
+Installation for async support:
+
+.. code-block:: console
+
+    pip install "persist-queue[async]"
+
+Example usage with async file-based queue:
+
+.. code-block:: python
+
+    import asyncio
+    from persistqueue import AsyncQueue
+
+    async def example():
+        async with AsyncQueue("/path/to/queue") as queue:
+            # Put data
+            await queue.put("data item")
+            
+            # Get data
+            item = await queue.get()
+            
+            # Mark task as done
+            await queue.task_done()
+            
+            # Wait for all tasks to complete
+            await queue.join()
+
+    # Run the example
+    asyncio.run(example())
+
+Example usage with async SQLite queue:
+
+.. code-block:: python
+
+    import asyncio
+    from persistqueue import AsyncSQLiteQueue
+
+    async def example():
+        async with AsyncSQLiteQueue("/path/to/queue.db") as queue:
+            # Put data, returns record ID
+            item_id = await queue.put({"key": "value"})
+            
+            # Get data
+            item = await queue.get()
+            
+            # Update data
+            await queue.update({"key": "new_value"}, item_id)
+            
+            # Mark task as done
+            await queue.task_done()
+
+    # Run the example
+    asyncio.run(example())
+
+Available async queue types:
+
+- ``AsyncQueue`` - Async file-based queue
+- ``AsyncSQLiteQueue`` - Async SQLite-based FIFO queue
+- ``AsyncFIFOSQLiteQueue`` - Async FIFO SQLite queue (alias)
+- ``AsyncFILOSQLiteQueue`` - Async FILO SQLite queue
+- ``AsyncUniqueQ`` - Async unique queue (no duplicates)
+
+For more detailed async API documentation, see `docs/async_api.md`_.
 
 .. code-block:: python
 

@@ -8,6 +8,20 @@ from .queue import Queue  # noqa: F401
 import logging
 log = logging.getLogger(__name__)
 
+# Async queue imports
+try:
+    from .async_queue import AsyncQueue  # noqa: F401
+    from .async_sqlqueue import (  # noqa: F401
+        AsyncSQLiteQueue,
+        AsyncFIFOSQLiteQueue,
+        AsyncFILOSQLiteQueue,
+        AsyncUniqueQ
+    )
+except ImportError as e:
+    # If async dependencies are not available, log info
+    log.info("Async queues not available, may need to install "
+             "aiofiles and aiosqlite: %s", e)
+
 # Attempt to import optional components, logging if not found.
 try:
     from .pdict import PDict  # noqa: F401
@@ -51,6 +65,11 @@ __all__ = [
     "AckStatus",
     "MySQLQueue",
     "PriorityQueue",
+    "AsyncQueue",
+    "AsyncSQLiteQueue",
+    "AsyncFIFOSQLiteQueue",
+    "AsyncFILOSQLiteQueue",
+    "AsyncUniqueQ",
     "Empty",
     "Full",
     "__author__",
