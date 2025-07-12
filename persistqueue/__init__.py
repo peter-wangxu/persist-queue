@@ -1,6 +1,6 @@
 __author__ = 'Peter Wang'
 __license__ = 'BSD'
-__version__ = '1.0.0'
+__version__ = '1.1.0-alpha'
 
 # Relative imports assuming the current package structure
 from .exceptions import Empty, Full  # noqa: F401
