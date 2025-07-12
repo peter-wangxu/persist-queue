@@ -16,15 +16,12 @@ persist-queue - A thread-safe, disk-based queue for Python
 .. image:: https://img.shields.io/pypi/pyversions/persist-queue
    :alt: PyPI - Python Version
 
-``persist-queue`` implements a file-based queue and a serial of sqlite3-based queues. The goals is to achieve following requirements:
+Overview
+--------
 
-* Disk-based: each queued item should be stored in disk in case of any crash.
-* Thread-safe: can be used by multi-threaded producers and multi-threaded consumers.
-* Recoverable: Items can be read after process restart.
-* Green-compatible: can be used in ``greenlet`` or ``eventlet`` environment.
-
-While *queuelib* and *python-pqueue* cannot fulfil all of above. After some try, I found it's hard to achieve based on their current
-implementation without huge code change. this is the motivation to start this project.
+``persist-queue`` implements file-based and SQLite3-based persistent queues for Python. 
+It provides thread-safe, disk-based queue implementations that survive process crashes 
+and restarts.
 
 By default, *persist-queue* use *pickle* object serialization module to support object instances.
 Most built-in type, like `int`, `dict`, `list` are able to be persisted by `persist-queue` directly, to support customized objects,
@@ -34,142 +31,153 @@ and `Pickling Class Instances(Python3) <https://docs.python.org/3/library/pickle
 This project is based on the achievements of `python-pqueue <https://github.com/balena/python-pqueue>`_
 and `queuelib <https://github.com/scrapy/queuelib>`_
 
-Release Notes
-^^^^^^^^^^^^^
+Key Features
+^^^^^^^^^^^
 
-For detailed information about recent changes and updates, see:
+* **Disk-based**: Each queued item is stored on disk to survive crashes
+* **Thread-safe**: Supports multi-threaded producers and consumers
+* **Recoverable**: Items can be read after process restart
+* **Green-compatible**: Works with ``greenlet`` or ``eventlet`` environments
+* **Multiple serialization**: Supports pickle (default), msgpack, cbor, and json
+* **Async support**: Provides async versions of all queue types (v1.1.0+)
 
-* `Release Notes for v1.1 <releasenote-1.1.txt>`_ - Major update with pytest migration and async queue enhancements
-* `Release Notes <RELEASENOTE.md>`_ - Complete release history
+Supported Queue Types
+^^^^^^^^^^^^^^^^^^^^
 
-Slack channels
-^^^^^^^^^^^^^^
+**File-based Queues:**
+* ``Queue`` - Basic file-based FIFO queue
+* ``AsyncQueue`` - Async file-based queue (v1.1.0+)
 
-Join `persist-queue <https://join.slack
-.com/t/persist-queue/shared_invite
-/enQtOTM0MDgzNTQ0MDg3LTNmN2IzYjQ1MDc0MDYzMjI4OGJmNmVkNWE3ZDBjYzg5MDc0OWUzZDJkYTkwODdkZmYwODdjNjUzMTk3MWExNDE>`_ channel
+**SQLite-based Queues:**
+* ``SQLiteQueue`` / ``FIFOSQLiteQueue`` - FIFO SQLite queue
+* ``FILOSQLiteQueue`` - FILO SQLite queue
+* ``UniqueQ`` - Unique items only queue
+* ``PriorityQueue`` - Priority-based queue
+* ``SQLiteAckQueue`` - Acknowledgment-based queue
+* ``AsyncSQLiteQueue`` - Async SQLite queue (v1.1.0+)
 
-
-Requirements
-------------
-* Python 3.5 or newer versions (refer to `Deprecation`_ for older Python versions)
-* Full support for Linux and MacOS.
-* Windows support (with `Caution`_ if ``persistqueue.Queue`` is used).
-
-Features
---------
-
-- Multiple platforms support: Linux, macOS, Windows
-- Pure python
-- Both filed based queues and sqlite3 based queues are supported
-- Filed based queue: multiple serialization protocol support: pickle(default), msgpack, cbor, json
-
-Deprecation
------------
-- `persist-queue` drops Python 2 support since version `1.0.0`, no new feature will be developed under Python 2 as `Python 2 was sunset on January 1, 2020 <https://www.python.org/doc/sunset-python-2/>`_.
-- `Python 3.4 release has reached end of life <https://www.python.org/downloads/release/python-3410/>`_ and
-  `DBUtils <https://webwareforpython.github.io/DBUtils/changelog.html>`_ ceased support for `Python 3.4`, `persist queue` drops MySQL based queue for python 3.4 since version 0.8.0.
-  other queue implementations such as file based queue and sqlite3 based queue are still workable.
+**Other:**
+* ``PDict`` - Persistent dictionary
+* ``MySQLQueue`` - MySQL-based queue (requires extra dependencies)
 
 Installation
-------------
+-----------
 
-from pypi
-^^^^^^^^^
+Basic Installation
+^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
     pip install persist-queue
-    # for msgpack, cbor and mysql support, use following command
+
+With Extra Features
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    # For msgpack, cbor, and MySQL support
     pip install "persist-queue[extra]"
-    # for async support, use following command
+    
+    # For async support (requires Python 3.7+)
     pip install "persist-queue[async]"
+    
+    # For all features
+    pip install "persist-queue[extra,async]"
 
-
-from source code
-^^^^^^^^^^^^^^^^
+From Source
+^^^^^^^^^^
 
 .. code-block:: console
 
     git clone https://github.com/peter-wangxu/persist-queue
     cd persist-queue
-    # for msgpack and cbor support, run 'pip install -r extra-requirements.txt' first
     python setup.py install
 
+Requirements
+-----------
 
-Benchmark
----------
+* Python 3.5 or newer (Python 2 support dropped in v1.0.0)
+* Full support for Linux, macOS, and Windows
+* For async features: Python 3.7+ with aiofiles and aiosqlite
+* For MySQL queues: DBUtils and PyMySQL
 
-Here are the time spent(in seconds) for writing/reading **1000** items to the
-disk comparing the sqlite3 and file queue.
+Quick Start
+----------
 
-- Windows
-    - OS: Windows 10
-    - Disk: SATA3 SSD
-    - RAM: 16 GiB
+Basic File Queue
+^^^^^^^^^^^^^^^
 
-+---------------+---------+-------------------------+----------------------------+
-|               | Write   | Write/Read(1 task_done) | Write/Read(many task_done) |
-+---------------+---------+-------------------------+----------------------------+
-| SQLite3 Queue | 1.8880  | 2.0290                  | 3.5940                     |
-+---------------+---------+-------------------------+----------------------------+
-| File Queue    | 4.9520  | 5.0560                  | 8.4900                     |
-+---------------+---------+-------------------------+----------------------------+
+.. code-block:: python
 
-**windows note**
-Performance of Windows File Queue has dramatic improvement since `v0.4.1` due to the
-atomic renaming support(3-4X faster)
+    from persistqueue import Queue
+    
+    # Create a queue
+    q = Queue("my_queue_path")
+    
+    # Add items
+    q.put("item1")
+    q.put("item2")
+    
+    # Get items
+    item = q.get()
+    print(item)  # "item1"
+    
+    # Mark as done
+    q.task_done()
 
-- Linux
-    - OS: Ubuntu 16.04 (VM)
-    - Disk: SATA3 SSD
-    - RAM:  4 GiB
+SQLite Queue
+^^^^^^^^^^^
 
-+---------------+--------+-------------------------+----------------------------+
-|               | Write  | Write/Read(1 task_done) | Write/Read(many task_done) |
-+---------------+--------+-------------------------+----------------------------+
-| SQLite3 Queue | 1.8282 | 1.8075                  | 2.8639                     |
-+---------------+--------+-------------------------+----------------------------+
-| File Queue    | 0.9123 | 1.0411                  | 2.5104                     |
-+---------------+--------+-------------------------+----------------------------+
+.. code-block:: python
 
-- Mac OS
-    - OS: 10.14 (macOS Mojave)
-    - Disk: PCIe SSD
-    - RAM:  16 GiB
+    import persistqueue
+    
+    # Create SQLite queue
+    q = persistqueue.SQLiteQueue('my_queue.db', auto_commit=True)
+    
+    # Add items
+    q.put('data1')
+    q.put('data2')
+    
+    # Get items
+    item = q.get()
+    print(item)  # "data1"
 
-+---------------+--------+-------------------------+----------------------------+
-|               | Write  | Write/Read(1 task_done) | Write/Read(many task_done) |
-+---------------+--------+-------------------------+----------------------------+
-| SQLite3 Queue | 0.1879 | 0.2115                  | 0.3147                     |
-+---------------+--------+-------------------------+----------------------------+
-| File Queue    | 0.5158 | 0.5357                  | 1.0446                     |
-+---------------+--------+-------------------------+----------------------------+
+Async Queue (v1.1.0+)
+^^^^^^^^^^^^^^^^^^^^
 
-**note**
+.. code-block:: python
 
-- The value above is in seconds for reading/writing *1000* items, the less
-  the better
-- Above result was got from:
-
-.. code-block:: console
-
-    python benchmark/run_benchmark.py 1000
-
-
-To see the real performance on your host, run the script under ``benchmark/run_benchmark.py``:
-
-.. code-block:: console
-
-    python benchmark/run_benchmark.py <COUNT, default to 100>
-
+    import asyncio
+    from persistqueue import AsyncQueue
+    
+    async def main():
+        async with AsyncQueue("/path/to/queue") as queue:
+            await queue.put("async item")
+            item = await queue.get()
+            await queue.task_done()
+    
+    asyncio.run(main())
 
 Examples
 --------
 
+File-based Queue
+^^^^^^^^^^^^^^^
 
-Example usage with a SQLite3 based queue
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code-block:: python
+
+    >>> from persistqueue import Queue
+    >>> q = Queue("mypath")
+    >>> q.put('a')
+    >>> q.put('b')
+    >>> q.put('c')
+    >>> q.get()
+    'a'
+    >>> q.task_done()
+
+SQLite3-based Queue
+^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -182,44 +190,8 @@ Example usage with a SQLite3 based queue
     'str1'
     >>> del q
 
-
-Close the console, and then recreate the queue:
-
-.. code-block:: python
-
-   >>> import persistqueue
-   >>> q = persistqueue.SQLiteQueue('mypath', auto_commit=True)
-   >>> q.get()
-   'str2'
-   >>>
-
-New functions:
-*Available since v0.8.0*
-
-- ``shrink_disk_usage`` perform a ``VACUUM`` against the sqlite, and rebuild the database file, this usually takes long time and frees a lot of disk space after ``get()``
-
-
-Example usage of SQLite3 based ``UniqueQ``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-This queue does not allow duplicate items.
-
-.. code-block:: python
-
-   >>> import persistqueue
-   >>> q = persistqueue.UniqueQ('mypath')
-   >>> q.put('str1')
-   >>> q.put('str1')
-   >>> q.size
-   1
-   >>> q.put('str2')
-   >>> q.size
-   2
-   >>>
-
-Example usage of SQLite3 based ``PriorityQueue``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``PriorityQueue`` supports a priority field. The smaller the value, the higher the priority. When retrieving items, the one with the highest priority (smallest value) is returned first. Other behaviors are similar to ``SQLiteQueue``.
+Priority Queue
+^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -234,263 +206,67 @@ The ``PriorityQueue`` supports a priority field. The smaller the value, the high
     'mid'
     >>> q.get()
     'low'
-    >>> q.empty()
-    True
 
-**Parameters:**
-
-- ``put(item, priority=0)``  
-  Add an item to the queue. ``priority`` is an integer; the smaller the value, the higher the priority. Default is 0.
-
-- ``put_nowait(item, priority=0)``  
-  Add an item to the queue without blocking. Same parameters as above.
-
-- ``get()``  
-  Retrieve the item with the highest priority (smallest priority value, earliest timestamp if equal).
-
-Other methods such as ``empty()``, ``qsize()``, and ``full()`` behave the same as in ``SQLiteQueue``.
-
-Example usage of SQLite3 based ``SQLiteAckQueue``/``UniqueAckQ``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The core functions:
-
-- ``put``: add item to the queue. Returns ``id``
-- ``get``: get item from queue and mark as unack.  Returns ``item``, Optional paramaters (``block``, ``timeout``, ``id``, ``next_in_order``, ``raw``)
-- ``update``: update an item. Returns ``id``, Paramaters (``item``), Optional parameter if item not in raw format (``id``)
-- ``ack``: mark item as acked. Returns ``id``, Parameters (``item`` or ``id``)
-- ``nack``: there might be something wrong with current consumer, so mark item as ready and new consumer will get it.  Returns ``id``, Parameters (``item`` or ``id``)
-- ``ack_failed``: there might be something wrong during process, so just mark item as failed. Returns ``id``, Parameters (``item`` or ``id``)
-- ``clear_acked_data``: perform a sql delete agaist sqlite. It removes 1000 items, while keeping 1000 of the most recent, whose status is ``AckStatus.acked`` (note: this does not shrink the file size on disk) Optional paramters (``max_delete``, ``keep_latest``, ``clear_ack_failed``)
-- ``shrink_disk_usage`` perform a ``VACUUM`` against the sqlite, and rebuild the database file, this usually takes long time and frees a lot of disk space after ``clear_acked_data``
-- ``queue``: returns the database contents as a Python List[Dict]
-- ``active_size``: The active size changes when an item is added (put) and completed (ack/ack_failed) unlike ``qsize`` which changes when an item is pulled (get) or returned (nack).
+Unique Queue
+^^^^^^^^^^^
 
 .. code-block:: python
 
-   >>> import persistqueue
-   >>> ackq = persistqueue.SQLiteAckQueue('path')
-   >>> ackq.put('str1')
-   >>> item = ackq.get()
-   >>> # Do something with the item
-   >>> ackq.ack(item) # If done with the item
-   >>> ackq.nack(item) # Else mark item as `nack` so that it can be proceeded again by any worker
-   >>> ackq.ack_failed(item) # Or else mark item as `ack_failed` to discard this item
+    >>> import persistqueue
+    >>> q = persistqueue.UniqueQ('mypath')
+    >>> q.put('str1')
+    >>> q.put('str1')  # Duplicate ignored
+    >>> q.size
+    1
+    >>> q.put('str2')
+    >>> q.size
+    2
 
-Parameters:
-
-- ``clear_acked_data``
-    - ``max_delete`` (defaults to 1000): This is the LIMIT.  How many items to delete.
-    - ``keep_latest`` (defaults to 1000): This is the OFFSET.  How many recent items to keep.
-    - ``clear_ack_failed`` (defaults to False): Clears the ``AckStatus.ack_failed`` in addition to the ``AckStatus.ack``.
-
-- ``get``
-    - ``raw`` (defaults to False): Returns the metadata along with the record, which includes the id (``pqid``) and timestamp.  On the SQLiteAckQueue, the raw results can be ack, nack, ack_failed similar to the normal return.
-    -  ``id`` (defaults to None): Accepts an `id` or a raw item containing ``pqid``.  Will select the item based on the row id.
-    -  ``next_in_order`` (defaults to False): Requires the ``id`` attribute.  This option tells the SQLiteAckQueue/UniqueAckQ to get the next item based on  ``id``, not the first available.  This allows the user to get, nack, get, nack and progress down the queue, instead of continuing to get the same nack'd item over again.
-
-``raw`` example:
+Acknowledgment Queue
+^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-   >>> q.put('val1')
-   >>> d = q.get(raw=True)
-   >>> print(d)
-   >>> {'pqid': 1, 'data': 'val1', 'timestamp': 1616719225.012912}
-   >>> q.ack(d)
+    >>> import persistqueue
+    >>> ackq = persistqueue.SQLiteAckQueue('path')
+    >>> ackq.put('str1')
+    >>> item = ackq.get()
+    >>> # Process the item
+    >>> ackq.ack(item)  # Mark as completed
+    >>> # Or if processing failed:
+    >>> ackq.nack(item)  # Mark for retry
+    >>> ackq.ack_failed(item)  # Mark as failed
 
-``next_in_order`` example:
-
-.. code-block:: python
-
-   >>> q.put("val1")
-   >>> q.put("val2")
-   >>> q.put("val3")
-   >>> item = q.get()
-   >>> id = q.nack(item)
-   >>> item = q.get(id=id, next_in_order=True)
-   >>> print(item)
-   >>> val2
-
-
-Note:
-
-1. The SQLiteAckQueue always uses "auto_commit=True".
-2. The Queue could be set in non-block style, e.g. "SQLiteAckQueue.get(block=False, timeout=5)".
-3. ``UniqueAckQ`` only allows for unique items
-
-Example usage with a file based queue
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Parameters:
-
-- ``path``: specifies the directory wher enqueued data persisted.
-- ``maxsize``: indicates the maximum size stored in the queue, if maxsize<=0 the queue is unlimited.
-- ``chunksize``: indicates how many entries should exist in each chunk file on disk. When a all entries in a chunk file was dequeued by get(), the file would be removed from filesystem.
-- ``tempdir``: indicates where temporary files should be stored. The tempdir has to be located on the same disk as the enqueued data in order to obtain atomic operations.
-- ``serializer``: controls how enqueued data is serialized.
-- ``auto_save``: `True` or `False`. By default, the change is only persisted when task_done() is called. If autosave is enabled, info data is persisted immediately when get() is called. Adding data to the queue with put() will always persist immediately regardless of this setting.
-
-.. code-block:: python
-
-    >>> from persistqueue import Queue
-    >>> q = Queue("mypath")
-    >>> q.put('a')
-    >>> q.put('b')
-    >>> q.put('c')
-    >>> q.get()
-    'a'
-    >>> q.task_done()
-
-
-Close the python console, and then we restart the queue from the same path,
-
-.. code-block:: python
-
-    >>> from persistqueue import Queue
-    >>> q = Queue('mypath')
-    >>> q.get()
-    'b'
-    >>> q.task_done()
-
-Example usage with an auto-saving file based queue
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-*Available since: v0.5.0*
-
-By default, items added to the queue are persisted during the ``put()`` call,
-and items removed from a queue are only persisted when ``task_done()`` is
-called.
-
-.. code-block:: python
-
-    >>> from persistqueue import Queue
-    >>> q = Queue("mypath")
-    >>> q.put('a')
-    >>> q.put('b')
-    >>> q.get()
-    'a'
-    >>> q.get()
-    'b'
-
-After exiting and restarting the queue from the same path, we see the items
-remain in the queue, because ``task_done()`` wasn't called before.
-
-.. code-block:: python
-
-    >>> from persistqueue import Queue
-    >>> q = Queue('mypath')
-    >>> q.get()
-    'a'
-    >>> q.get()
-    'b'
-
-This can be advantageous. For example, if your program crashes before finishing
-processing an item, it will remain in the queue after restarting. You can also
-spread out the ``task_done()`` calls for performance reasons to avoid lots of
-individual writes.
-
-Using ``autosave=True`` on a file based queue will automatically save on every
-call to ``get()``. Calling ``task_done()`` is not necessary, but may still be
-used to ``join()`` against the queue.
-
-.. code-block:: python
-
-    >>> from persistqueue import Queue
-    >>> q = Queue("mypath", autosave=True)
-    >>> q.put('a')
-    >>> q.put('b')
-    >>> q.get()
-    'a'
-
-After exiting and restarting the queue from the same path, only the second item
-remains:
-
-Asynchronous API
-^^^^^^^^^^^^^^^
-
-*Available since: v1.1.0*
-
-Since file I/O is inherently asynchronous, we provide async versions of the API that can better utilize asynchronous programming models. The async API maintains compatibility with existing synchronous APIs while providing better performance and concurrency handling.
-
-Installation for async support:
-
-.. code-block:: console
-
-    pip install "persist-queue[async]"
-
-Example usage with async file-based queue:
+Async Queue (v1.1.0+)
+^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
     import asyncio
-    from persistqueue import AsyncQueue
+    from persistqueue import AsyncQueue, AsyncSQLiteQueue
 
     async def example():
+        # File-based async queue
         async with AsyncQueue("/path/to/queue") as queue:
-            # Put data
             await queue.put("data item")
-            
-            # Get data
             item = await queue.get()
-            
-            # Mark task as done
             await queue.task_done()
-            
-            # Wait for all tasks to complete
-            await queue.join()
-
-    # Run the example
-    asyncio.run(example())
-
-Example usage with async SQLite queue:
-
-.. code-block:: python
-
-    import asyncio
-    from persistqueue import AsyncSQLiteQueue
-
-    async def example():
+        
+        # SQLite-based async queue
         async with AsyncSQLiteQueue("/path/to/queue.db") as queue:
-            # Put data, returns record ID
             item_id = await queue.put({"key": "value"})
-            
-            # Get data
             item = await queue.get()
-            
-            # Update data
             await queue.update({"key": "new_value"}, item_id)
-            
-            # Mark task as done
             await queue.task_done()
 
-    # Run the example
     asyncio.run(example())
 
-Available async queue types:
-
-- ``AsyncQueue`` - Async file-based queue
-- ``AsyncSQLiteQueue`` - Async SQLite-based FIFO queue
-- ``AsyncFIFOSQLiteQueue`` - Async FIFO SQLite queue (alias)
-- ``AsyncFILOSQLiteQueue`` - Async FILO SQLite queue
-- ``AsyncUniqueQ`` - Async unique queue (no duplicates)
-
-For more detailed async API documentation, see `docs/async_api.md`_.
-
+Persistent Dictionary
+^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-    >>> from persistqueue import Queue
-    >>> q = Queue('mypath', autosave=True)
-    >>> q.get()
-    'b'
-
-
-Example usage with a SQLite3 based dict
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: python
-
-    >>> from persisitqueue import PDict
+    >>> from persistqueue import PDict
     >>> q = PDict("testpath", "testname")
     >>> q['key1'] = 123
     >>> q['key2'] = 321
@@ -500,29 +276,18 @@ Example usage with a SQLite3 based dict
     2
     >>> del q['key1']
     >>> q['key1']
-    Traceback (most recent call last):
-      File "<stdin>", line 1, in <module>
-      File "persistqueue\pdict.py", line 58, in __getitem__
-        raise KeyError('Key: {} not exists.'.format(item))
     KeyError: 'Key: key1 not exists.'
 
-Close the console and restart the PDict
+Multi-threading Usage
+--------------------
 
-
-.. code-block:: python
-
-    >>> from persisitqueue import PDict
-    >>> q = PDict("testpath", "testname")
-    >>> q['key2']
-    321
-
-
-Multi-thread usage for **SQLite3** based queue
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SQLite3-based Queue
+^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
     from persistqueue import FIFOSQLiteQueue
+    from threading import Thread
 
     q = FIFOSQLiteQueue(path="./test", multithreading=True)
 
@@ -539,13 +304,13 @@ Multi-thread usage for **SQLite3** based queue
     for item in source():
         q.put(item)
 
-
-multi-thread usage for **Queue**
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File-based Queue
+^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
     from persistqueue import Queue
+    from threading import Thread
 
     q = Queue()
 
@@ -563,172 +328,166 @@ multi-thread usage for **Queue**
     for item in source():
         q.put(item)
 
-    q.join()       # block until all tasks are done
+    q.join()  # Block until all tasks are done
 
-Example usage with a MySQL based queue
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Serialization Options
+--------------------
 
-*Available since: v0.8.0*
-
-.. code-block:: python
-
-    >>> import persistqueue
-    >>> db_conf = {
-    >>>     "host": "127.0.0.1",
-    >>>     "user": "user",
-    >>>     "passwd": "passw0rd",
-    >>>     "db_name": "testqueue",
-    >>>     # "name": "",
-    >>>     "port": 3306
-    >>> }
-    >>> q = persistqueue.MySQLQueue(name="testtable", **db_conf)
-    >>> q.put('str1')
-    >>> q.put('str2')
-    >>> q.put('str3')
-    >>> q.get()
-    'str1'
-    >>> del q
-
-
-Close the console, and then recreate the queue:
+persist-queue supports multiple serialization protocols:
 
 .. code-block:: python
 
-   >>> import persistqueue
-   >>> q = persistqueue.MySQLQueue(name="testtable", **db_conf)
-   >>> q.get()
-   'str2'
-   >>>
+    >>> from persistqueue import Queue
+    >>> from persistqueue import serializers
+    
+    # Pickle (default)
+    >>> q = Queue('mypath', serializer=serializers.pickle)
+    
+    # MessagePack
+    >>> q = Queue('mypath', serializer=serializers.msgpack)
+    
+    # CBOR
+    >>> q = Queue('mypath', serializer=serializers.cbor2)
+    
+    # JSON
+    >>> q = Queue('mypath', serializer=serializers.json)
 
+Performance
+----------
 
+Benchmark Results (1000 items)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**note**
+**Windows (Windows 10, SATA3 SSD, 16GB RAM)**
 
-Due to the limitation of file queue described in issue `#89 <https://github.com/peter-wangxu/persist-queue/issues/89>`_,
-`task_done` in one thread may acknowledge items in other threads which should not be. Considering the `SQLiteAckQueue` if you have such requirement.
++---------------+---------+-------------------------+----------------------------+
+|               | Write   | Write/Read(1 task_done) | Write/Read(many task_done) |
++---------------+---------+-------------------------+----------------------------+
+| SQLite3 Queue | 1.8880  | 2.0290                  | 3.5940                     |
++---------------+---------+-------------------------+----------------------------+
+| File Queue    | 4.9520  | 5.0560                  | 8.4900                     |
++---------------+---------+-------------------------+----------------------------+
 
+**Linux (Ubuntu 16.04 VM, SATA3 SSD, 4GB RAM)**
 
-Serialization via msgpack/cbor/json
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- v0.4.1: Currently only available for file based Queue
-- v0.4.2: Also available for SQLite3 based Queues
++---------------+--------+-------------------------+----------------------------+
+|               | Write  | Write/Read(1 task_done) | Write/Read(many task_done) |
++---------------+--------+-------------------------+----------------------------+
+| SQLite3 Queue | 1.8282 | 1.8075                  | 2.8639                     |
++---------------+--------+-------------------------+----------------------------+
+| File Queue    | 0.9123 | 1.0411                  | 2.5104                     |
++---------------+--------+-------------------------+----------------------------+
 
-.. code-block:: python
+**macOS (10.14 Mojave, PCIe SSD, 16GB RAM)**
 
-    >>> from persistqueue
-    >>> q = persistqueue.Queue('mypath', serializer=persistqueue.serializers.msgpack)
-    >>> # via cbor2
-    >>> # q = persistqueue.Queue('mypath', serializer=persistqueue.serializers.cbor2)
-    >>> # via json
-    >>> # q = Queue('mypath', serializer=persistqueue.serializers.json)
-    >>> q.get()
-    'b'
-    >>> q.task_done()
++---------------+--------+-------------------------+----------------------------+
+|               | Write  | Write/Read(1 task_done) | Write/Read(many task_done) |
++---------------+--------+-------------------------+----------------------------+
+| SQLite3 Queue | 0.1879 | 0.2115                  | 0.3147                     |
++---------------+--------+-------------------------+----------------------------+
+| File Queue    | 0.5158 | 0.5357                  | 1.0446                     |
++---------------+--------+-------------------------+----------------------------+
 
-Explicit resource reclaim
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Performance Tips
+^^^^^^^^^^^^^^^
 
-For some reasons, an application may require explicit reclamation for file
-handles or sql connections before end of execution. In these cases, user can
-simply call:
-.. code-block:: python
+* **WAL Mode**: SQLite3 queues use WAL mode by default for better performance
+* **auto_commit=False**: Use for batch operations, call ``task_done()`` to persist
+* **Protocol Selection**: Automatically selects optimal pickle protocol
+* **Windows**: File queue performance improved 3-4x since v0.4.1
 
-    q = Queue() # or q = persistqueue.SQLiteQueue('mypath', auto_commit=True)
-    del q
-
-
-to reclaim related file handles or sql connections.
-
-Tips
-----
-
-``task_done`` is required both for file based queue and SQLite3 based queue (when ``auto_commit=False``)
-to persist the cursor of next ``get`` to the disk.
-
-
-Performance impact
-------------------
-
-- **WAL**
-
-  Starting on v0.3.2, the ``persistqueue`` is leveraging the sqlite3 builtin feature
-  `WAL <https://www.sqlite.org/wal.html>`_ which can improve the performance
-  significantly, a general testing indicates that ``persistqueue`` is 2-4 times
-  faster than previous version.
-
-- **auto_commit=False**
-
-  Since persistqueue v0.3.0, a new parameter ``auto_commit`` is introduced to tweak
-  the performance for sqlite3 based queues as needed. When specify ``auto_commit=False``, user
-  needs to perform ``queue.task_done()`` to persist the changes made to the disk since
-  last ``task_done`` invocation.
-
-- **pickle protocol selection**
-
-  From v0.3.6, the ``persistqueue`` will select ``Protocol version 2`` for python2 and ``Protocol version 4`` for python3
-  respectively. This selection only happens when the directory is not present when initializing the queue.
-
-Tests
------
-
-*persist-queue* use ``tox`` to trigger tests.
-
-- Unit test
-
-.. code-block:: console
-
-    tox -e <PYTHON_VERSION>
-
-Available ``<PYTHON_VERSION>``: ``py27``, ``py34``, ``py35``, ``py36``, ``py37``
-
-
-- PEP8 check
-
-.. code-block:: console
-
-   tox -e pep8
-
-
-`pyenv <https://github.com/pyenv/pyenv>`_ is usually a helpful tool to manage multiple versions of Python.
-
-Caution
+Testing
 -------
 
-Currently, the atomic operation is supported on Windows while still in experimental,
-That's saying, the data in ``persistqueue.Queue`` could be in unreadable state when an incidental failure occurs during ``Queue.task_done``.
+Run tests using tox:
 
-**DO NOT put any critical data on persistqueue.queue on Windows**.
+.. code-block:: console
 
+    # Run tests for specific Python version
+    tox -e py312
+    
+    # Run code style checks
+    tox -e pep8
+    
+    # Generate coverage report
+    tox -e cover
 
-Contribution
+Development
+----------
+
+Install development dependencies:
+
+.. code-block:: console
+
+    pip install -r test-requirements.txt
+    pip install -r extra-requirements.txt
+
+Run benchmarks:
+
+.. code-block:: console
+
+    python benchmark/run_benchmark.py 1000
+
+Release Notes
 ------------
 
-Simply fork this repo and send PR for your code change(also tests to cover your change), remember to give a title and description of your PR. I am willing to
-enhance this project with you :).
+For detailed information about recent changes and updates, see:
 
+* `Release Notes for v1.1 <docs/RELEASE_NOTES/releasenote-1.1.txt>`_ - Major update with async queue enhancements and pytest migration
+* `Complete Release History <RELEASENOTE.md>`_ - All version changes
+
+Known Issues
+-----------
+
+* **Windows File Queue**: Atomic operations are experimental. Critical data may become unreadable during ``task_done()`` failures
+* **MySQL Tests**: Require local MySQL service, otherwise skipped automatically
+* **Async Features**: Require Python 3.7+ and asyncio support
+
+Troubleshooting
+--------------
+
+**Database Locked Error**
+^^^^^^^^^^^^^^^^^^^^^^^
+
+If you get ``sqlite3.OperationalError: database is locked``:
+
+* Increase the ``timeout`` parameter when creating the queue
+* Ensure you're using ``multithreading=True`` for multi-threaded access
+
+**Thread Safety Issues**
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* Make sure to set ``multithreading=True`` when initializing SQLite queues
+* SQLite3 queues are thoroughly tested in multi-threading environments
+
+**Import Errors**
+^^^^^^^^^^^^^^^
+
+* For async features: Install with ``pip install "persist-queue[async]"``
+* For MySQL support: Install with ``pip install "persist-queue[extra]"``
+
+Community
+---------
+
+* **Slack**: Join `persist-queue <https://join.slack.com/t/persist-queue/shared_invite/enQtOTM0MDgzNTQ0MDg3LTNmN2IzYjQ1MDc0MDYzMjI4OGJmNmVkNWE3ZDBjYzg5MDc0OWUzZDJkYTkwODdkZmYwODdjNjUzMTk3MWExNDE>`_ channel
+* **GitHub**: `Repository <https://github.com/peter-wangxu/persist-queue>`_
+* **PyPI**: `Package <https://pypi.python.org/pypi/persist-queue>`_
+
+Contributing
+-----------
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests to cover your changes
+5. Submit a pull request with a clear title and description
 
 License
 -------
 
-`BSD <LICENSE>`_
+`BSD License <LICENSE>`_
 
 Contributors
-------------
+-----------
 
-`Contributors <https://github.com/peter-wangxu/persist-queue/graphs/contributors>`_
-
-FAQ
----
-
-* ``sqlite3.OperationalError: database is locked`` is raised.
-
-persistqueue open 2 connections for the db if ``multithreading=True``, the
-SQLite database is locked until that transaction is committed. The ``timeout``
-parameter specifies how long the connection should wait for the lock to go away
-until raising an exception. Default time is **10**, increase ``timeout``
-when creating the queue if above error occurs.
-
-* sqlite3 based queues are not thread-safe.
-
-The sqlite3 queues are heavily tested under multi-threading environment, if you find it's not thread-safe, please
-make sure you set the ``multithreading=True`` when initializing the queue before submitting new issue:).
+`View Contributors <https://github.com/peter-wangxu/persist-queue/graphs/contributors>`_
