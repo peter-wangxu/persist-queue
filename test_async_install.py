@@ -17,6 +17,9 @@ def test_imports():
     try:
         from persistqueue import AsyncQueue, AsyncSQLiteQueue
         print("✓ Async queue classes imported successfully")
+        # Store the imported classes globally for other tests
+        globals()['AsyncQueue'] = AsyncQueue
+        globals()['AsyncSQLiteQueue'] = AsyncSQLiteQueue
         return True
     except ImportError as e:
         print(f"✗ Async queue classes import failed: {e}")
@@ -149,6 +152,14 @@ async def main():
     
     # Test dependencies
     if not test_dependencies():
+        return False
+    
+    # Get imported classes
+    AsyncQueue = globals().get('AsyncQueue')
+    AsyncSQLiteQueue = globals().get('AsyncSQLiteQueue')
+    
+    if not AsyncQueue or not AsyncSQLiteQueue:
+        print("✗ Failed to import async queue classes")
         return False
     
     # Test functionality

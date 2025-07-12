@@ -1,0 +1,112 @@
+Release Notes for persist-queue 1.1
+====================================
+
+Major Update: Migration from nose2 to pytest testing framework
+
+Overview
+--------
+This release migrates the project's testing framework from nose2 to pytest, improving
+modernity and maintainability of tests. It also fixes several async queue-related bugs
+and ensures strict compliance with PEP8 code standards.
+
+Major Changes
+-------------
+
+Testing Framework Migration
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Migrated testing framework from nose2 to pytest
+* Updated tox.ini configuration to support pytest and pytest-asyncio
+* Modified all test files to use pytest-style decorators and assertions
+* Added pytest-cov support for code coverage reporting
+
+Dependency Updates
+~~~~~~~~~~~~~~~~~
+* Removed nose2 dependency
+* Added pytest>=6.0.0
+* Added pytest-asyncio>=0.18.0
+* Added pytest-cov>=4.0.0
+* Retained other test dependencies (mock, flake8, eventlet, etc.)
+
+Async Queue Feature Enhancements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Added persistqueue/async_queue.py - Async queue implementation
+* Added persistqueue/serializers/async_pickle.py - Async pickle serializer
+* Fixed EOFError issues in async queues
+* Improved async timeout exception handling
+* Optimized async file operations and locking mechanisms
+
+Code Quality Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+* Strict compliance with PEP8 code standards
+* Fixed all flake8 warnings
+* Improved code formatting and whitespace handling
+* Optimized exception handling and import statements
+
+Test Improvements
+~~~~~~~~~~~~~~~~
+* Added skip conditions for MySQL tests (when local MySQL service is unavailable)
+* Fixed async test integration with pytest-asyncio
+* Improved test parameterization and assertion methods
+* Enhanced test coverage and stability
+
+File Change Details
+------------------
+
+New Files:
+* persistqueue/async_queue.py - Core async queue implementation
+* persistqueue/serializers/async_pickle.py - Async pickle serializer
+
+Modified Files:
+* tox.ini - Updated test environment configuration
+* test-requirements.txt - Updated test dependencies
+* persistqueue/tests/test_queue.py - Migrated to pytest style
+* persistqueue/tests/test_priorityqueue.py - Migrated to pytest style
+* persistqueue/tests/test_sqlqueue.py - Migrated to pytest style
+* persistqueue/tests/test_sqlackqueue.py - Migrated to pytest style
+* persistqueue/tests/test_mysqlqueue.py - Migrated to pytest style
+* persistqueue/tests/test_pdict.py - Migrated to pytest style
+
+Technical Details
+----------------
+
+Async Queue Implementation:
+* Asyncio-based async queue implementation
+* Support for async serializers
+* Improved file locking and concurrency control
+* Optimized memory usage and performance
+
+Serializer Improvements:
+* New async pickle serializer
+* Support for async file operations
+* Improved error handling and recovery mechanisms
+
+Testing Framework Benefits:
+* pytest provides richer assertion and parameterization features
+* Better test discovery and execution mechanisms
+* Built-in async test support
+* More detailed test reports and coverage analysis
+
+Compatibility
+-------------
+* Maintains full compatibility with existing synchronous APIs
+* Async APIs are new features that don't affect existing code
+* All existing test cases maintain their functionality
+
+Installation and Usage
+---------------------
+* Run tests with tox: tox -e py312
+* Run code style checks: tox -e pep8
+* Generate coverage reports: tox -e cover
+* Run async tests: pytest --asyncio-mode=auto
+
+Known Issues
+-----------
+* MySQL tests require local MySQL service, otherwise they will be skipped automatically
+* Async features require Python 3.7+ and asyncio support
+
+Future Plans
+-----------
+* Further optimize async queue performance
+* Add support for more async serializers
+* Enhance error handling and monitoring capabilities
+* Improve documentation and example code 

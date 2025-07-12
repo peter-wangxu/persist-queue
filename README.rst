@@ -34,6 +34,14 @@ and `Pickling Class Instances(Python3) <https://docs.python.org/3/library/pickle
 This project is based on the achievements of `python-pqueue <https://github.com/balena/python-pqueue>`_
 and `queuelib <https://github.com/scrapy/queuelib>`_
 
+Release Notes
+^^^^^^^^^^^^^
+
+For detailed information about recent changes and updates, see:
+
+* `Release Notes for v1.1 <releasenote-1.1.txt>`_ - Major update with pytest migration and async queue enhancements
+* `Release Notes <RELEASENOTE.md>`_ - Complete release history
+
 Slack channels
 ^^^^^^^^^^^^^^
 
@@ -400,7 +408,7 @@ remains:
 Asynchronous API
 ^^^^^^^^^^^^^^^
 
-*Available since: v1.0.0*
+*Available since: v1.1.0*
 
 Since file I/O is inherently asynchronous, we provide async versions of the API that can better utilize asynchronous programming models. The async API maintains compatibility with existing synchronous APIs while providing better performance and concurrency handling.
 
@@ -467,6 +475,7 @@ Available async queue types:
 - ``AsyncUniqueQ`` - Async unique queue (no duplicates)
 
 For more detailed async API documentation, see `docs/async_api.md`_.
+
 
 .. code-block:: python
 

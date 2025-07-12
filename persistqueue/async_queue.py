@@ -27,38 +27,26 @@ async def _truncate_async(fn: str, length: int) -> None:
 
 async def atomic_rename_async(src: str, dst: str) -> None:
     """Asynchronously atomically rename file."""
-    await aiofiles.os.replace(src, dst)
+    try:
+        await aiofiles.os.replace(src, dst)
+    except PermissionError:
+        # On Windows, sometimes we need to wait a bit
+        # for file handles to be released
+        import asyncio
+        await asyncio.sleep(0.1)
+        await aiofiles.os.replace(src, dst)
 
 
 class AsyncQueue:
     """Asynchronous thread-safe persistent queue."""
 
-    def __init__(
-        self,
-        path: str,
-        maxsize: int = 0,
-        chunksize: int = 100,
-        tempdir: Optional[str] = None,
-        serializer: Any = persistqueue.serializers.pickle,
-        autosave: bool = False
-    ) -> None:
-        """Create an asynchronous persistent queue object.
-
-        Args:
-            path: Directory path where queue data is stored
-            maxsize: Maximum queue size, 0 means unlimited
-            chunksize: Number of entries in each chunk file
-            tempdir: Temporary file directory
-            serializer: Serializer object
-            autosave: Whether to auto-save
-        """
-        log.debug('Initializing async file queue with path {}'.format(
-            path))
+    def __init__(self, path, maxsize=0, chunksize=100, tempdir=None,
+                 serializer=None, autosave=False):
         self.path = path
+        self.maxsize = maxsize
         self.chunksize = chunksize
         self.tempdir = tempdir
-        self.maxsize = maxsize
-        self.serializer = serializer
+        self.serializer = serializer or persistqueue.serializers.pickle
         self.autosave = autosave
         self._init(maxsize)
 
@@ -157,17 +145,27 @@ class AsyncQueue:
                         remaining = endtime - _time()
                         if remaining <= 0.0:
                             raise Full
-                        await asyncio.wait_for(
-                            self._not_full.wait(), remaining)
+                        try:
+                            await asyncio.wait_for(
+                                self._not_full.wait(), remaining)
+                        except asyncio.TimeoutError:
+                            raise Full
             await self._put(item)
             self.unfinished_tasks += 1
             self._not_empty.notify()
 
     async def _put(self, item: Any) -> None:
         """Internal put method."""
-        # Note: We need to handle synchronous serializer calls here
-        # In practice, async serializers may be needed
-        self.serializer.dump(item, self.headf)
+        # Use async serializer if available, otherwise fall back to sync
+        if hasattr(self.serializer, 'dump') and \
+                asyncio.iscoroutinefunction(self.serializer.dump):
+            await self.serializer.dump(item, self.headf)
+        else:
+            # Fall back to sync serializer with async file handling
+            import io
+            buffer = io.BytesIO()
+            self.serializer.dump(item, buffer)
+            await self.headf.write(buffer.getvalue())
         await self.headf.flush()
         hnum, hpos, _ = self.info['head']
         hpos += 1
@@ -204,8 +202,14 @@ class AsyncQueue:
                     remaining = endtime - _time()
                     if remaining <= 0.0:
                         raise Empty
-                    await asyncio.wait_for(self._not_empty.wait(), remaining)
+                    try:
+                        await asyncio.wait_for(
+                            self._not_empty.wait(), remaining)
+                    except asyncio.TimeoutError:
+                        raise Empty
             item = await self._get()
+            if item is None:
+                raise Empty
             self._not_full.notify()
             return item
 
@@ -219,8 +223,22 @@ class AsyncQueue:
         hnum, hcnt, _ = self.info['head']
         if [tnum, tcnt] >= [hnum, hcnt]:
             return None
-        # Note: We need to handle synchronous serializer calls here
-        data = self.serializer.load(self.tailf)
+        await self.tailf.seek(toffset)
+        if hasattr(self.serializer, 'load') and \
+                asyncio.iscoroutinefunction(self.serializer.load):
+            data = await self.serializer.load(self.tailf)
+        else:
+            import io
+            import pickle
+            try:
+                content = await self.tailf.read()
+                if not content:
+                    return None
+                buffer = io.BytesIO(content)
+                data = pickle.load(buffer)
+                await self.tailf.seek(toffset + buffer.tell())
+            except (EOFError, pickle.UnpicklingError):
+                return None
         toffset = await self.tailf.tell()
         tcnt += 1
         if tcnt == self.info['chunksize'] and tnum <= hnum:
@@ -288,15 +306,24 @@ class AsyncQueue:
             return tempfile.mkstemp()
 
     async def _saveinfo(self) -> None:
-        """Asynchronously save queue info."""
         tmpfd, tmpfn = await self._gettempfile_async()
-        async with aiofiles.open(tmpfn, "wb") as tmpfo:
-            # Note: We need to handle synchronous serializer here
-            import io
-            buffer = io.BytesIO()
-            self.serializer.dump(self.info, buffer)
-            await tmpfo.write(buffer.getvalue())
-        await atomic_rename_async(tmpfn, self._infopath())
+        try:
+            async with aiofiles.open(tmpfn, "wb") as tmpfo:
+                import io
+                buffer = io.BytesIO()
+                self.serializer.dump(self.info, buffer)
+                await tmpfo.write(buffer.getvalue())
+            import os
+            os.close(tmpfd)
+            await atomic_rename_async(tmpfn, self._infopath())
+        except Exception:
+            try:
+                import os
+                if os.path.exists(tmpfn):
+                    os.unlink(tmpfn)
+            except Exception:
+                pass
+            raise
         await self._clear_tail_file()
 
     async def _clear_tail_file(self) -> None:
@@ -323,6 +350,9 @@ class AsyncQueue:
         for to_close in self.headf, self.tailf:
             if to_close and not to_close.closed:
                 await to_close.close()
+        # Ensure files are properly closed
+        self.headf = None
+        self.tailf = None
 
     async def __aenter__(self):
         """Async context manager entry."""

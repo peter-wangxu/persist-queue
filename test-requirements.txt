@@ -6,6 +6,7 @@ msgpack>=0.5.6
 cbor2>=5.6.0
 pytest>=6.0.0
 pytest-asyncio>=0.18.0
+pytest-cov>=4.0.0
 coverage!=4.5
 cov_core>=1.15.0
 virtualenv>=15.1.0
