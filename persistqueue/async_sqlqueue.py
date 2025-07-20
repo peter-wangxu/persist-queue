@@ -196,12 +196,13 @@ class AsyncSQLiteQueue:
                         return item
             else:
                 row = await self._select(
-                    self.cursor, op=">", column=self._KEY_COLUMN,
                     rowid=rowid
                 )
                 if row and row[0] is not None:
                     self.cursor = row[0]
                     self.total -= 1
+                    # Delete the record in non-auto-commit mode
+                    await self._delete(row[0])
                     item = self._serializer.loads(row[1])
                     if raw:
                         return {

@@ -27,14 +27,17 @@ async def _truncate_async(fn: str, length: int) -> None:
 
 async def atomic_rename_async(src: str, dst: str) -> None:
     """Asynchronously atomically rename file."""
-    try:
-        await aiofiles.os.replace(src, dst)
-    except PermissionError:
-        # On Windows, sometimes we need to wait a bit
-        # for file handles to be released
-        import asyncio
-        await asyncio.sleep(0.1)
-        await aiofiles.os.replace(src, dst)
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            await aiofiles.os.replace(src, dst)
+            return
+        except PermissionError:
+            if attempt == max_retries - 1:
+                raise
+            # On Windows, sometimes we need to wait a bit
+            # for file handles to be released
+            await asyncio.sleep(0.1 * (attempt + 1))
 
 
 class AsyncQueue:
@@ -47,9 +50,17 @@ class AsyncQueue:
         self.chunksize = chunksize
         self.tempdir = tempdir
         self.serializer = serializer or persistqueue.serializers.pickle
+        
+        # Validate serializer has required methods
+        if not hasattr(self.serializer, 'dump') or not hasattr(self.serializer, 'load'):
+            raise AttributeError("Serializer must have 'dump' and 'load' methods")
+            
         self.autosave = autosave
+
+        # Initialize queue directory first
         self._init(maxsize)
 
+        # Now check filesystem compatibility for tempdir
         if self.tempdir:
             if os.stat(self.path).st_dev != os.stat(self.tempdir).st_dev:
                 raise ValueError("tempdir must be located on the same "
@@ -172,7 +183,12 @@ class AsyncQueue:
         if hpos == self.info['chunksize']:
             hpos = 0
             hnum += 1
-            await self.headf.fsync()
+            # Try to fsync if available, otherwise just flush
+            try:
+                await self.headf.fsync()
+            except AttributeError:
+                # Some file objects don't have fsync method
+                pass
             await self.headf.close()
             self.headf = await self._openchunk_async(hnum, 'ab+')
         self.info['size'] += 1
@@ -208,7 +224,8 @@ class AsyncQueue:
                     except asyncio.TimeoutError:
                         raise Empty
             item = await self._get()
-            if item is None:
+            # Only raise Empty if the queue is actually empty, not for None values
+            if item is None and self._qsize() == 0:
                 raise Empty
             self._not_full.notify()
             return item
@@ -238,6 +255,23 @@ class AsyncQueue:
                 data = pickle.load(buffer)
                 await self.tailf.seek(toffset + buffer.tell())
             except (EOFError, pickle.UnpicklingError):
+                # When pickle error occurs, we should advance the tail position
+                # to avoid infinite loop, but mark the item as corrupted
+                toffset = await self.tailf.tell()
+                tcnt += 1
+                if tcnt == self.info['chunksize'] and tnum <= hnum:
+                    tcnt = toffset = 0
+                    tnum += 1
+                    await self.tailf.close()
+                    self.tailf = await self._openchunk_async(tnum)
+                self.info['size'] -= 1
+                self.info['tail'] = [tnum, tcnt, toffset]
+                if self.autosave:
+                    await self._saveinfo()
+                    self.update_info = False
+                else:
+                    self.update_info = True
+                # Return None to indicate corrupted data, but queue size is updated
                 return None
         toffset = await self.tailf.tell()
         tcnt += 1
@@ -362,3 +396,4 @@ class AsyncQueue:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.close()
+ 

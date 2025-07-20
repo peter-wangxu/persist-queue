@@ -9,6 +9,7 @@ import time
 import sys
 import platform
 import os
+import asyncio
 
 BENCHMARK_COUNT = 100
 
@@ -70,6 +71,28 @@ class BenchmarkResult:
             f"{file_results.get('read_write_many', 0):.4f}"
         ]
         print("|" + "|".join(f" {r:<18} " for r in file_row) + "|")
+        
+        # Add Async SQLite results
+        async_sqlite_results = self.results.get('AsyncSQLiteQueue', {})
+        if async_sqlite_results:
+            async_sqlite_row = [
+                "AsyncSQLiteQueue",
+                f"{async_sqlite_results.get('write', 0):.4f}",
+                f"{async_sqlite_results.get('read_write_1', 0):.4f}",
+                f"{async_sqlite_results.get('read_write_many', 0):.4f}"
+            ]
+            print("|" + "|".join(f" {r:<18} " for r in async_sqlite_row) + "|")
+        
+        # Add Async File Queue results
+        async_file_results = self.results.get('AsyncFileQueue', {})
+        if async_file_results:
+            async_file_row = [
+                "AsyncFileQueue",
+                f"{async_file_results.get('write', 0):.4f}",
+                f"{async_file_results.get('read_write_1', 0):.4f}",
+                f"{async_file_results.get('read_write_many', 0):.4f}"
+            ]
+            print("|" + "|".join(f" {r:<18} " for r in async_file_row) + "|")
         
         print(separator)
         print()
@@ -221,6 +244,118 @@ class Sqlite3QueueBench(object):
         result_collector.add_result('SQLite3 Queue', 'read_write_many', time_taken)
 
 
+class AsyncFileQueueBench(object):
+    """Benchmark Async File queue performance."""
+    def __init__(self, prefix=None):
+        self.path = prefix
+
+    async def benchmark_async_file_write(self):
+        """Writing <BENCHMARK_COUNT> items (async)."""
+        import tempfile
+        from persistqueue.async_queue import AsyncQueue
+        self.path = tempfile.mkdtemp('b_async_file_10000')
+        async with AsyncQueue(self.path) as q:
+            for i in range(BENCHMARK_COUNT):
+                await q.put(f'bench{i}')
+            assert await q.qsize() == BENCHMARK_COUNT
+
+    async def benchmark_async_file_read_write_1(self):
+        """Writing and reading <BENCHMARK_COUNT> items(1 task_done, async)."""
+        import tempfile
+        from persistqueue.async_queue import AsyncQueue
+        self.path = tempfile.mkdtemp('b_async_file_10000')
+        async with AsyncQueue(self.path) as q:
+            for i in range(BENCHMARK_COUNT):
+                await q.put(f'bench{i}')
+            for i in range(BENCHMARK_COUNT):
+                await q.get()
+            await q.task_done()
+            assert await q.qsize() == 0
+
+    async def benchmark_async_file_read_write_many(self):
+        """Writing and reading <BENCHMARK_COUNT> items(many task_done, async)."""
+        import tempfile
+        from persistqueue.async_queue import AsyncQueue
+        self.path = tempfile.mkdtemp('b_async_file_10000')
+        async with AsyncQueue(self.path) as q:
+            for i in range(BENCHMARK_COUNT):
+                await q.put(f'bench{i}')
+            for i in range(BENCHMARK_COUNT):
+                await q.get()
+                await q.task_done()
+            assert await q.qsize() == 0
+
+    async def run(self, result_collector):
+        print("Running Async File Queue benchmarks...")
+        import time
+        # Write test
+        start = time.time()
+        await self.benchmark_async_file_write()
+        result_collector.add_result('AsyncFileQueue', 'write', time.time() - start)
+        # Read/Write with 1 task_done
+        start = time.time()
+        await self.benchmark_async_file_read_write_1()
+        result_collector.add_result('AsyncFileQueue', 'read_write_1', time.time() - start)
+        # Read/Write with many task_done
+        start = time.time()
+        await self.benchmark_async_file_read_write_many()
+        result_collector.add_result('AsyncFileQueue', 'read_write_many', time.time() - start)
+
+class AsyncSqliteQueueBench(object):
+    """Benchmark Async SQLite queue performance."""
+    async def benchmark_async_sqlite_write(self):
+        """Writing <BENCHMARK_COUNT> items (async)."""
+        import tempfile
+        from persistqueue.async_sqlqueue import AsyncSQLiteQueue
+        self.path = tempfile.mktemp(suffix='.db', prefix='b_async_sql_10000')
+        async with AsyncSQLiteQueue(self.path) as q:
+            for i in range(BENCHMARK_COUNT):
+                await q.put(f'bench{i}')
+            assert await q.qsize() == BENCHMARK_COUNT
+
+    async def benchmark_async_sqlite_read_write_1(self):
+        """Writing and reading <BENCHMARK_COUNT> items(1 task_done, async)."""
+        import tempfile
+        from persistqueue.async_sqlqueue import AsyncSQLiteQueue
+        self.path = tempfile.mktemp(suffix='.db', prefix='b_async_sql_10000')
+        async with AsyncSQLiteQueue(self.path) as q:
+            for i in range(BENCHMARK_COUNT):
+                await q.put(f'bench{i}')
+            for i in range(BENCHMARK_COUNT):
+                await q.get()
+            await q.task_done()
+            assert await q.qsize() == 0
+
+    async def benchmark_async_sqlite_read_write_many(self):
+        """Writing and reading <BENCHMARK_COUNT> items(many task_done, async)."""
+        import tempfile
+        from persistqueue.async_sqlqueue import AsyncSQLiteQueue
+        self.path = tempfile.mktemp(suffix='.db', prefix='b_async_sql_10000')
+        async with AsyncSQLiteQueue(self.path) as q:
+            for i in range(BENCHMARK_COUNT):
+                await q.put(f'bench{i}')
+            for i in range(BENCHMARK_COUNT):
+                await q.get()
+                await q.task_done()
+            assert await q.qsize() == 0
+
+    async def run(self, result_collector):
+        print("Running Async SQLite Queue benchmarks...")
+        import time
+        # Write test
+        start = time.time()
+        await self.benchmark_async_sqlite_write()
+        result_collector.add_result('AsyncSQLiteQueue', 'write', time.time() - start)
+        # Read/Write with 1 task_done
+        start = time.time()
+        await self.benchmark_async_sqlite_read_write_1()
+        result_collector.add_result('AsyncSQLiteQueue', 'read_write_1', time.time() - start)
+        # Read/Write with many task_done
+        start = time.time()
+        await self.benchmark_async_sqlite_read_write_many()
+        result_collector.add_result('AsyncSQLiteQueue', 'read_write_many', time.time() - start)
+
+
 def get_platform_info():
     """Get platform information for benchmark results."""
     system = platform.system()
@@ -271,6 +406,14 @@ def main():
     
     sql_bench = Sqlite3QueueBench()
     sql_bench.run(results)
+    
+    # Async benchmarks
+    async def run_async_bench():
+        async_file_bench = AsyncFileQueueBench()
+        await async_file_bench.run(results)
+        async_sql_bench = AsyncSqliteQueueBench()
+        await async_sql_bench.run(results)
+    asyncio.run(run_async_bench())
     
     # Output results
     if output_format == 'rst':

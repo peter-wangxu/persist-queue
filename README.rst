@@ -368,25 +368,39 @@ Benchmark Results (1000 items)
 | File Queue    | 4.9520  | 5.0560                  | 8.4900                     |
 +---------------+---------+-------------------------+----------------------------+
 
-**Linux (Ubuntu 16.04 VM, SATA3 SSD, 4GB RAM)**
+Benchmarking
+------------
 
-+---------------+--------+-------------------------+----------------------------+
-|               | Write  | Write/Read(1 task_done) | Write/Read(many task_done) |
-+---------------+--------+-------------------------+----------------------------+
-| SQLite3 Queue | 1.8282 | 1.8075                  | 2.8639                     |
-+---------------+--------+-------------------------+----------------------------+
-| File Queue    | 0.9123 | 1.0411                  | 2.5104                     |
-+---------------+--------+-------------------------+----------------------------+
+You can easily benchmark the performance of all queue types (including async) using the built-in tool:
 
-**macOS (10.14 Mojave, PCIe SSD, 16GB RAM)**
+**Run with tox:**
 
-+---------------+--------+-------------------------+----------------------------+
-|               | Write  | Write/Read(1 task_done) | Write/Read(many task_done) |
-+---------------+--------+-------------------------+----------------------------+
-| SQLite3 Queue | 0.1879 | 0.2115                  | 0.3147                     |
-+---------------+--------+-------------------------+----------------------------+
-| File Queue    | 0.5158 | 0.5357                  | 1.0446                     |
-+---------------+--------+-------------------------+----------------------------+
+.. code-block:: console
+
+    tox -e bench -- rst
+
+**Or run directly:**
+
+.. code-block:: console
+
+    python benchmark/run_benchmark.py 1000 rst
+
+- The first argument is the number of items to test (default: 1000)
+- The second argument is the output format: `rst` (for reStructuredText table), `console`, or `json`
+
+**Example output (rst):**
+
+.. code-block:: text
+
+    +--------------------+--------------------+--------------------+--------------------+
+    | Queue Type         | Write              | Write/Read(1 task_done) | Write/Read(many task_done) |
+    +--------------------+--------------------+--------------------+--------------------+
+    | File Queue         | 0.0481             | 0.0299             | 0.0833             |
+    | AsyncSQLiteQueue   | 0.2664             | 0.5353             | 0.5508             |
+    | AsyncFileQueue     | 0.1333             | 0.1500             | 0.2337             |
+    +--------------------+--------------------+--------------------+--------------------+
+
+This makes it easy to compare the performance of sync and async queues on your platform.
 
 Performance Tips
 ^^^^^^^^^^^^^^^
@@ -434,7 +448,6 @@ Release Notes
 For detailed information about recent changes and updates, see:
 
 * `Release Notes for v1.1 <docs/RELEASE_NOTES/releasenote-1.1.txt>`_ - Major update with async queue enhancements and pytest migration
-* `Complete Release History <RELEASENOTE.md>`_ - All version changes
 
 Known Issues
 -----------
