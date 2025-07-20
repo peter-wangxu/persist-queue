@@ -266,11 +266,9 @@ class AsyncQueue:
                     self.tailf = await self._openchunk_async(tnum)
                 self.info['size'] -= 1
                 self.info['tail'] = [tnum, tcnt, toffset]
-                if self.autosave:
-                    await self._saveinfo()
-                    self.update_info = False
-                else:
-                    self.update_info = True
+                # Don't call _saveinfo during error handling to avoid potential issues
+                # Just mark that info needs to be updated
+                self.update_info = True
                 # Return None to indicate corrupted data, but queue size is updated
                 return None
         toffset = await self.tailf.tell()
