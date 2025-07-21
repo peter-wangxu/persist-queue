@@ -18,6 +18,8 @@ import persistqueue.serializers.pickle
 
 log = logging.getLogger(__name__)
 
+_EMPTY = object()
+
 
 async def _truncate_async(fn: str, length: int) -> None:
     """Asynchronously truncate file to specified length."""
@@ -50,11 +52,11 @@ class AsyncQueue:
         self.chunksize = chunksize
         self.tempdir = tempdir
         self.serializer = serializer or persistqueue.serializers.pickle
-        
+
         # Validate serializer has required methods
         if not hasattr(self.serializer, 'dump') or not hasattr(self.serializer, 'load'):
             raise AttributeError("Serializer must have 'dump' and 'load' methods")
-            
+
         self.autosave = autosave
 
         # Initialize queue directory first
@@ -141,6 +143,10 @@ class AsyncQueue:
         """Put item into queue."""
         async with self._not_full:
             await self._async_init()
+            # Check for negative timeout first
+            if timeout is not None and timeout < 0:
+                raise ValueError("'timeout' must be a non-negative number")
+
             if self.maxsize > 0:
                 if not block:
                     if self._qsize() == self.maxsize:
@@ -148,8 +154,6 @@ class AsyncQueue:
                 elif timeout is None:
                     while self._qsize() == self.maxsize:
                         await self._not_full.wait()
-                elif timeout < 0:
-                    raise ValueError("'timeout' must be a non-negative number")
                 else:
                     endtime = _time() + timeout
                     while self._qsize() == self.maxsize:
@@ -176,6 +180,7 @@ class AsyncQueue:
             import io
             buffer = io.BytesIO()
             self.serializer.dump(item, buffer)
+            buffer.seek(0)  # Reset buffer position
             await self.headf.write(buffer.getvalue())
         await self.headf.flush()
         hnum, hpos, _ = self.info['head']
@@ -207,11 +212,11 @@ class AsyncQueue:
             if not block:
                 if not self._qsize():
                     raise Empty
+            elif timeout is not None and timeout < 0:
+                raise ValueError("'timeout' must be a non-negative number")
             elif timeout is None:
                 while not self._qsize():
                     await self._not_empty.wait()
-            elif timeout < 0:
-                raise ValueError("'timeout' must be a non-negative number")
             else:
                 endtime = _time() + timeout
                 while not self._qsize():
@@ -224,8 +229,9 @@ class AsyncQueue:
                     except asyncio.TimeoutError:
                         raise Empty
             item = await self._get()
-            # Only raise Empty if the queue is actually empty, not for None values
-            if item is None and self._qsize() == 0:
+            # Only raise Empty if the queue is actually empty
+            # (when _get returns _EMPTY)
+            if item is _EMPTY:
                 raise Empty
             self._not_full.notify()
             return item
@@ -239,7 +245,7 @@ class AsyncQueue:
         tnum, tcnt, toffset = self.info['tail']
         hnum, hcnt, _ = self.info['head']
         if [tnum, tcnt] >= [hnum, hcnt]:
-            return None
+            return _EMPTY
         await self.tailf.seek(toffset)
         if hasattr(self.serializer, 'load') and \
                 asyncio.iscoroutinefunction(self.serializer.load):
@@ -250,7 +256,7 @@ class AsyncQueue:
             try:
                 content = await self.tailf.read()
                 if not content:
-                    return None
+                    return _EMPTY
                 buffer = io.BytesIO(content)
                 data = pickle.load(buffer)
                 await self.tailf.seek(toffset + buffer.tell())
@@ -269,8 +275,8 @@ class AsyncQueue:
                 # Don't call _saveinfo during error handling to avoid potential issues
                 # Just mark that info needs to be updated
                 self.update_info = True
-                # Return None to indicate corrupted data, but queue size is updated
-                return None
+                # Return _EMPTY to indicate corrupted data, but queue size is updated
+                return _EMPTY
         toffset = await self.tailf.tell()
         tcnt += 1
         if tcnt == self.info['chunksize'] and tnum <= hnum:
@@ -343,7 +349,12 @@ class AsyncQueue:
             async with aiofiles.open(tmpfn, "wb") as tmpfo:
                 import io
                 buffer = io.BytesIO()
-                self.serializer.dump(self.info, buffer)
+                # Use async serializer if available, otherwise fall back to sync
+                if hasattr(self.serializer, 'dump') and \
+                        asyncio.iscoroutinefunction(self.serializer.dump):
+                    await self.serializer.dump(self.info, buffer)
+                else:
+                    self.serializer.dump(self.info, buffer)
                 await tmpfo.write(buffer.getvalue())
             import os
             os.close(tmpfd)

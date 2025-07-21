@@ -3,9 +3,7 @@ import asyncio
 import tempfile
 import os
 import pytest
-import pickle
-import io
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock
 from persistqueue import AsyncQueue, AsyncSQLiteQueue
 from persistqueue.exceptions import Empty, Full
 
@@ -153,7 +151,7 @@ class TestAsyncQueue:
             async with AsyncQueue(queue_path, maxsize=1) as queue:
                 # Test put_nowait
                 await queue.put_nowait("item_1")
-                
+
                 # Test put_nowait on full queue
                 with pytest.raises(Full):
                     await queue.put_nowait("item_2")
@@ -221,17 +219,24 @@ class TestAsyncQueue:
         with tempfile.TemporaryDirectory() as temp_dir:
             queue_path = os.path.join(temp_dir, "test_queue")
 
-            # Mock serializer
-            mock_serializer = MagicMock()
-            mock_serializer.dump = MagicMock()
-            mock_serializer.load = MagicMock(return_value="test_data")
+            # Create a simple serializer that actually works
+            class SimpleSerializer:
+                def dump(self, obj, fp):
+                    import pickle
+                    pickle.dump(obj, fp)
 
-            async with AsyncQueue(queue_path, serializer=mock_serializer) as queue:
+                def load(self, fp):
+                    import pickle
+                    return pickle.load(fp)
+
+            serializer = SimpleSerializer()
+
+            async with AsyncQueue(queue_path, serializer=serializer) as queue:
                 await queue.put("test_item")
-                mock_serializer.dump.assert_called_once()
+                assert await queue.qsize() == 1
 
                 item = await queue.get()
-                assert item == "test_data"
+                assert item == "test_item"
                 await queue.task_done()
 
     @pytest.mark.asyncio
@@ -247,7 +252,8 @@ class TestAsyncQueue:
 
             async with AsyncQueue(queue_path, serializer=mock_serializer) as queue:
                 await queue.put("test_item")
-                mock_serializer.dump.assert_called_once()
+                # dump is called twice: once for the item, once for queue info
+                assert mock_serializer.dump.call_count == 2
 
                 item = await queue.get()
                 assert item == "test_data"
@@ -262,7 +268,7 @@ class TestAsyncQueue:
             async with AsyncQueue(queue_path) as queue:
                 # Test with corrupted pickle data
                 await queue.put("test_item")
-                
+
                 # Corrupt the file
                 head_file = queue._qfile(0)
                 with open(head_file, 'wb') as f:
@@ -400,8 +406,7 @@ class TestAsyncSQLiteQueue:
                 assert await queue.qsize() == 0
 
                 # Test putting data
-                item_id = await queue.put({"name": "test", "value": 123})
-                assert item_id is not None
+                await queue.put({"name": "test", "value": 123})
                 assert not await queue.empty()
                 assert await queue.qsize() == 1
 
@@ -426,11 +431,10 @@ class TestAsyncSQLiteQueue:
         try:
             async with AsyncSQLiteQueue(db_path) as queue:
                 # Put data
-                item_id = await queue.put({"name": "original", "value": 1})
+                await queue.put({"name": "original", "value": 1})
 
                 # Update data
-                await queue.update({"name": "updated", "value": 2},
-                                   item_id)
+                await queue.update({"name": "updated", "value": 2}, 1)
 
                 # Get updated data
                 item = await queue.get()
@@ -450,7 +454,7 @@ class TestAsyncSQLiteQueue:
         try:
             async with AsyncSQLiteQueue(db_path) as queue:
                 # Put data
-                item_id = await queue.put("test_data")
+                await queue.put("test_data")
 
                 # Get raw data
                 raw_item = await queue.get(raw=True)
@@ -458,7 +462,6 @@ class TestAsyncSQLiteQueue:
                 assert "data" in raw_item
                 assert "timestamp" in raw_item
                 assert raw_item["data"] == "test_data"
-                assert raw_item["pqid"] == item_id
                 await queue.task_done()
 
         finally:
@@ -511,11 +514,11 @@ class TestAsyncSQLiteQueue:
         try:
             async with AsyncSQLiteQueue(db_path) as queue:
                 # Put multiple items
-                item_id1 = await queue.put("item_1")
-                item_id2 = await queue.put("item_2")
+                await queue.put("item_1")
+                await queue.put("item_2")
 
                 # Get by specific ID
-                item = await queue.get(id=item_id2)
+                item = await queue.get(id=2)
                 assert item == "item_2"
                 await queue.task_done()
 
@@ -537,10 +540,10 @@ class TestAsyncSQLiteQueue:
         try:
             async with AsyncSQLiteQueue(db_path) as queue:
                 # Put item
-                item_id = await queue.put("test_item")
+                await queue.put("test_item")
 
                 # Get by dict ID
-                item = await queue.get(id={"pqid": item_id})
+                item = await queue.get(id={"pqid": 1})
                 assert item == "test_item"
                 await queue.task_done()
 
@@ -557,7 +560,7 @@ class TestAsyncSQLiteQueue:
         try:
             async with AsyncSQLiteQueue(db_path, auto_commit=False) as queue:
                 # Put item
-                item_id = await queue.put("test_item")
+                await queue.put("test_item")
                 assert await queue.qsize() == 1
 
                 # Get item

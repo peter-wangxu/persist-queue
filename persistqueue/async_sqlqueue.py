@@ -14,6 +14,8 @@ import persistqueue.serializers.pickle
 
 log = logging.getLogger(__name__)
 
+_EMPTY = object()
+
 
 class AsyncSQLiteQueue:
     """Asynchronous SQLite3 FIFO queue."""
@@ -142,12 +144,16 @@ class AsyncSQLiteQueue:
 
         if not block:
             serialized = await self._pop(raw=raw, rowid=rowid)
-            if serialized is None:
+            if serialized is _EMPTY:
                 raise Empty
         elif timeout is None:
             # Block until put event
             serialized = await self._pop(raw=raw, rowid=rowid)
-            while serialized is None:
+            while serialized is _EMPTY:
+                # If we're looking for a specific ID and it doesn't exist,
+                # don't wait
+                if rowid is not None:
+                    raise Empty
                 self._put_event.clear()
                 await self._put_event.wait()
                 serialized = await self._pop(raw=raw, rowid=rowid)
@@ -157,7 +163,11 @@ class AsyncSQLiteQueue:
             # Block until timeout
             endtime = _time.time() + timeout
             serialized = await self._pop(raw=raw, rowid=rowid)
-            while serialized is None:
+            while serialized is _EMPTY:
+                # If we're looking for a specific ID and it doesn't exist,
+                # don't wait
+                if rowid is not None:
+                    raise Empty
                 self._put_event.clear()
                 remaining = endtime - _time.time()
                 if remaining <= 0.0:
@@ -194,6 +204,8 @@ class AsyncSQLiteQueue:
                         }
                     else:
                         return item
+                else:
+                    return _EMPTY
             else:
                 row = await self._select(
                     rowid=rowid
@@ -212,7 +224,8 @@ class AsyncSQLiteQueue:
                         }
                     else:
                         return item
-            return None
+                else:
+                    return _EMPTY
 
     async def _select(self, *args, **kwargs) -> Optional[tuple]:
         """Select record."""
@@ -308,6 +321,7 @@ class AsyncSQLiteQueue:
         """Close database connection."""
         if self._conn:
             await self._conn.close()
+            self._conn = None
 
     async def __aenter__(self):
         """Async context manager entry."""
