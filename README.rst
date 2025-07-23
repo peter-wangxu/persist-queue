@@ -45,10 +45,12 @@ Supported Queue Types
 ^^^^^^^^^^^^^^^^^^^^^
 
 **File-based Queues:**
+
 * ``Queue`` - Basic file-based FIFO queue
 * ``AsyncQueue`` - Async file-based queue (v1.1.0+)
 
 **SQLite-based Queues:**
+
 * ``SQLiteQueue`` / ``FIFOSQLiteQueue`` - FIFO SQLite queue
 * ``FILOSQLiteQueue`` - FILO SQLite queue
 * ``UniqueQ`` - Unique items only queue
@@ -57,6 +59,7 @@ Supported Queue Types
 * ``AsyncSQLiteQueue`` - Async SQLite queue (v1.1.0+)
 
 **Other:**
+
 * ``PDict`` - Persistent dictionary
 * ``MySQLQueue`` - MySQL-based queue (requires extra dependencies)
 
