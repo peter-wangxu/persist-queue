@@ -6,7 +6,11 @@ from setuptools import setup, find_packages
 
 def get_extras():
     return {
-        "extra": open("extra-requirements.txt").read().splitlines()
+        "extra": open("extra-requirements.txt").read().splitlines(),
+        "async": [
+            "aiofiles>=0.8.0",
+            "aiosqlite>=0.17.0"
+        ]
     }
 
 

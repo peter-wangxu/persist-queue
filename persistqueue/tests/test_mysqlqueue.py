@@ -4,6 +4,7 @@ import random
 from threading import Thread
 import time
 import sys
+import pytest
 
 from persistqueue.mysqlqueue import MySQLQueue
 from persistqueue import Empty
@@ -30,6 +31,24 @@ if sys.platform.startswith('win32'):
     }
 
 
+def mysql_available():
+    """Check if MySQL server is available."""
+    try:
+        import pymysql
+        connection = pymysql.connect(
+            host=db_conf["host"],
+            user=db_conf["user"],
+            password=db_conf["passwd"],
+            port=db_conf["port"],
+            connect_timeout=5
+        )
+        connection.close()
+        return True
+    except Exception:
+        return False
+
+
+@pytest.mark.skipif(not mysql_available(), reason="MySQL server not available")
 class MySQLQueueTest(unittest.TestCase):
     """tests that focus on feature specific to mysql"""
 
