@@ -54,8 +54,10 @@ class AsyncQueue:
         self.serializer = serializer or persistqueue.serializers.pickle
 
         # Validate serializer has required methods
-        if not hasattr(self.serializer, 'dump') or not hasattr(self.serializer, 'load'):
-            raise AttributeError("Serializer must have 'dump' and 'load' methods")
+        if not hasattr(self.serializer, 'dump') or (
+                not hasattr(self.serializer, 'load')):
+            raise AttributeError("Serializer must have 'dump' "
+                                 "and 'load' methods")
 
         self.autosave = autosave
 
@@ -272,10 +274,12 @@ class AsyncQueue:
                     self.tailf = await self._openchunk_async(tnum)
                 self.info['size'] -= 1
                 self.info['tail'] = [tnum, tcnt, toffset]
-                # Don't call _saveinfo during error handling to avoid potential issues
+                # Don't call _saveinfo during error handling
+                # to avoid potential issues
                 # Just mark that info needs to be updated
                 self.update_info = True
-                # Return _EMPTY to indicate corrupted data, but queue size is updated
+                # Return _EMPTY to indicate corrupted data,
+                # but queue size is updated
                 return _EMPTY
         toffset = await self.tailf.tell()
         tcnt += 1
@@ -349,7 +353,8 @@ class AsyncQueue:
             async with aiofiles.open(tmpfn, "wb") as tmpfo:
                 import io
                 buffer = io.BytesIO()
-                # Use async serializer if available, otherwise fall back to sync
+                # Use async serializer if available,
+                # otherwise fall back to sync
                 if hasattr(self.serializer, 'dump') and \
                         asyncio.iscoroutinefunction(self.serializer.dump):
                     await self.serializer.dump(self.info, buffer)
@@ -405,4 +410,3 @@ class AsyncQueue:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.close()
- 

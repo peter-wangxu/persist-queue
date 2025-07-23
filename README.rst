@@ -143,6 +143,34 @@ SQLite Queue
     item = q.get()
     print(item)  # "data1"
 
+MySQL Queue
+^^^^^^^^^^
+
+.. code-block:: python
+
+    import persistqueue
+    
+    # Create MySQL queue
+    q = persistqueue.MySQLQueue(
+        host='localhost',
+        port=3306,
+        user='username',
+        password='password',
+        database='testdb',
+        table_name='my_queue'
+    )
+    
+    # Add items
+    q.put('data1')
+    q.put('data2')
+    
+    # Get items
+    item = q.get()
+    print(item)  # "data1"
+    
+    # Mark as done
+    q.task_done()
+
 Async Queue (v1.1.0+)
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -237,6 +265,32 @@ Acknowledgment Queue
     >>> ackq.nack(item)  # Mark for retry
     >>> ackq.ack_failed(item)  # Mark as failed
 
+MySQL Queue
+^^^^^^^^^^
+
+.. code-block:: python
+
+    >>> import persistqueue
+    >>> q = persistqueue.MySQLQueue(
+    ...     host='localhost',
+    ...     port=3306,
+    ...     user='testuser',
+    ...     password='testpass',
+    ...     database='testdb',
+    ...     table_name='test_queue'
+    ... )
+    >>> q.put('item1')
+    >>> q.put('item2')
+    >>> q.put('item3')
+    >>> q.get()
+    'item1'
+    >>> q.task_done()
+    >>> q.get()
+    'item2'
+    >>> q.task_done()
+    >>> q.size
+    1
+
 Async Queue (v1.1.0+)
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -304,6 +358,8 @@ SQLite3-based Queue
     for item in source():
         q.put(item)
 
+    q.join()  # Block until all tasks are done
+
 File-based Queue
 ^^^^^^^^^^^^^^^
 
@@ -313,6 +369,39 @@ File-based Queue
     from threading import Thread
 
     q = Queue()
+
+    def worker():
+        while True:
+            item = q.get()
+            do_work(item)
+            q.task_done()
+
+    for i in range(num_worker_threads):
+         t = Thread(target=worker)
+         t.daemon = True
+         t.start()
+
+    for item in source():
+        q.put(item)
+
+    q.join()  # Block until all tasks are done
+
+MySQL Queue
+^^^^^^^^^^^
+
+.. code-block:: python
+
+    from persistqueue import MySQLQueue
+    from threading import Thread
+
+    q = MySQLQueue(
+        host='localhost',
+        port=3306,
+        user='username',
+        password='password',
+        database='testdb',
+        table_name='my_queue'
+    )
 
     def worker():
         while True:
@@ -409,6 +498,7 @@ Performance Tips
 * **auto_commit=False**: Use for batch operations, call ``task_done()`` to persist
 * **Protocol Selection**: Automatically selects optimal pickle protocol
 * **Windows**: File queue performance improved 3-4x since v0.4.1
+* **MySQL Connection Pooling**: MySQL queues use connection pooling for better performance
 
 Testing
 -------
@@ -467,14 +557,25 @@ If you get ``sqlite3.OperationalError: database is locked``:
 * Increase the ``timeout`` parameter when creating the queue
 * Ensure you're using ``multithreading=True`` for multi-threaded access
 
+**MySQL Connection Issues**
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you get MySQL connection errors:
+
+* Verify MySQL server is running and accessible
+* Check connection parameters (host, port, user, password)
+* Ensure the database exists and user has proper permissions
+* For connection pool issues, try increasing ``max_connections`` parameter
+
 **Thread Safety Issues**
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 * Make sure to set ``multithreading=True`` when initializing SQLite queues
 * SQLite3 queues are thoroughly tested in multi-threading environments
+* MySQL queues are thread-safe by default
 
 **Import Errors**
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 * For async features: Install with ``pip install "persist-queue[async]"``
 * For MySQL support: Install with ``pip install "persist-queue[extra]"``

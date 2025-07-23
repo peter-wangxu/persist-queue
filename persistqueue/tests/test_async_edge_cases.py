@@ -96,7 +96,9 @@ class TestAsyncQueueEdgeCases:
             async with AsyncQueue(queue_path) as queue:
                 # Mock aiofiles.os.replace to raise PermissionError on first
                 # call, succeed on second
-                with patch('persistqueue.async_queue.aiofiles.os.replace') as mock_replace:
+                with patch('persistqueue.async_queue.'
+                           'aiofiles.os.replace') \
+                        as mock_replace:
                     mock_replace.side_effect = [PermissionError, None]
                     # Should handle permission error with retry
                     await queue.put("test_item")
@@ -580,4 +582,4 @@ class TestAsyncSQLiteQueueEdgeCases:
                 assert len(all_items) == 10
 
         finally:
-            os.unlink(db_path) 
+            os.unlink(db_path)

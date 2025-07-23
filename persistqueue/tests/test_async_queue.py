@@ -250,7 +250,8 @@ class TestAsyncQueue:
             mock_serializer.dump = AsyncMock()
             mock_serializer.load = AsyncMock(return_value="test_data")
 
-            async with AsyncQueue(queue_path, serializer=mock_serializer) as queue:
+            async with AsyncQueue(
+                        queue_path, serializer=mock_serializer) as queue:
                 await queue.put("test_item")
                 # dump is called twice: once for the item, once for queue info
                 assert mock_serializer.dump.call_count == 2
@@ -288,7 +289,8 @@ class TestAsyncQueue:
             with tempfile.TemporaryDirectory() as temp_dir2:
                 # This should work if on same filesystem
                 try:
-                    async with AsyncQueue(queue_path, tempdir=temp_dir2) as queue:
+                    async with AsyncQueue(
+                                queue_path, tempdir=temp_dir2) as queue:
                         await queue.put("test_item")
                         item = await queue.get()
                         assert item == "test_item"

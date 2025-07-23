@@ -44,15 +44,13 @@ class BenchmarkResult:
         # Define column headers
         headers = ["Queue Type", "Write", "Write/Read(1 task_done)", "Write/Read(many task_done)"]
         
-        # Create table
-        table_width = len(headers)
-        separator = "+" + "+".join(["-" * 20] * table_width) + "+"
+        # Calculate column widths based on content
+        col_widths = [len(h) for h in headers]
         
-        print(separator)
-        print("|" + "|".join(f" {h:<18} " for h in headers) + "|")
-        print(separator)
+        # Add data rows to calculate max widths
+        all_rows = [headers]
         
-        # Add SQLite results
+        # SQLite results
         sqlite_results = self.results.get('SQLite3 Queue', {})
         sqlite_row = [
             "SQLite3 Queue",
@@ -60,9 +58,9 @@ class BenchmarkResult:
             f"{sqlite_results.get('read_write_1', 0):.4f}",
             f"{sqlite_results.get('read_write_many', 0):.4f}"
         ]
-        print("|" + "|".join(f" {r:<18} " for r in sqlite_row) + "|")
+        all_rows.append(sqlite_row)
         
-        # Add File Queue results
+        # File Queue results
         file_results = self.results.get('File Queue', {})
         file_row = [
             "File Queue",
@@ -70,9 +68,9 @@ class BenchmarkResult:
             f"{file_results.get('read_write_1', 0):.4f}",
             f"{file_results.get('read_write_many', 0):.4f}"
         ]
-        print("|" + "|".join(f" {r:<18} " for r in file_row) + "|")
+        all_rows.append(file_row)
         
-        # Add Async SQLite results
+        # Async SQLite results
         async_sqlite_results = self.results.get('AsyncSQLiteQueue', {})
         if async_sqlite_results:
             async_sqlite_row = [
@@ -81,9 +79,9 @@ class BenchmarkResult:
                 f"{async_sqlite_results.get('read_write_1', 0):.4f}",
                 f"{async_sqlite_results.get('read_write_many', 0):.4f}"
             ]
-            print("|" + "|".join(f" {r:<18} " for r in async_sqlite_row) + "|")
+            all_rows.append(async_sqlite_row)
         
-        # Add Async File Queue results
+        # Async File Queue results
         async_file_results = self.results.get('AsyncFileQueue', {})
         if async_file_results:
             async_file_row = [
@@ -92,7 +90,36 @@ class BenchmarkResult:
                 f"{async_file_results.get('read_write_1', 0):.4f}",
                 f"{async_file_results.get('read_write_many', 0):.4f}"
             ]
-            print("|" + "|".join(f" {r:<18} " for r in async_file_row) + "|")
+            all_rows.append(async_file_row)
+        
+        # Calculate maximum width for each column
+        for row in all_rows:
+            for i, cell in enumerate(row):
+                col_widths[i] = max(col_widths[i], len(cell))
+        
+        # Add padding to column widths (2 spaces for left and right padding)
+        col_widths = [w + 2 for w in col_widths]
+        
+        # Create separator line
+        separator = "+" + "+".join("-" * w for w in col_widths) + "+"
+        
+        # Print table
+        print(separator)
+        
+        # Print header (left-aligned)
+        header_cells = [f" {h:<{col_widths[i]-1}} " for i, h in enumerate(headers)]
+        print("|" + "|".join(header_cells) + "|")
+        print(separator)
+        
+        # Print data rows (first column left-aligned, others right-aligned for numbers)
+        for row in all_rows[1:]:  # Skip header
+            cells = []
+            for i, cell in enumerate(row):
+                if i == 0:  # Queue Type column - left aligned
+                    cells.append(f" {cell:<{col_widths[i]-1}} ")
+                else:  # Number columns - right aligned
+                    cells.append(f" {cell:>{col_widths[i]-1}} ")
+            print("|" + "|".join(cells) + "|")
         
         print(separator)
         print()
