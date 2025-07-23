@@ -32,7 +32,7 @@ This project is based on the achievements of `python-pqueue <https://github.com/
 and `queuelib <https://github.com/scrapy/queuelib>`_
 
 Key Features
-^^^^^^^^^^^
+^^^^^^^^^^^^
 
 * **Disk-based**: Each queued item is stored on disk to survive crashes
 * **Thread-safe**: Supports multi-threaded producers and consumers
@@ -42,7 +42,7 @@ Key Features
 * **Async support**: Provides async versions of all queue types (v1.1.0+)
 
 Supported Queue Types
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 **File-based Queues:**
 * ``Queue`` - Basic file-based FIFO queue
@@ -61,17 +61,17 @@ Supported Queue Types
 * ``MySQLQueue`` - MySQL-based queue (requires extra dependencies)
 
 Installation
------------
+------------
 
 Basic Installation
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
     pip install persist-queue
 
 With Extra Features
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
@@ -85,7 +85,7 @@ With Extra Features
     pip install "persist-queue[extra,async]"
 
 From Source
-^^^^^^^^^^
+^^^^^^^^^^^
 
 .. code-block:: console
 
@@ -94,7 +94,7 @@ From Source
     python setup.py install
 
 Requirements
------------
+------------
 
 * Python 3.5 or newer (Python 2 support dropped in v1.0.0)
 * Full support for Linux, macOS, and Windows
@@ -102,10 +102,10 @@ Requirements
 * For MySQL queues: DBUtils and PyMySQL
 
 Quick Start
-----------
+-----------
 
 Basic File Queue
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -126,7 +126,7 @@ Basic File Queue
     q.task_done()
 
 SQLite Queue
-^^^^^^^^^^^
+^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -144,7 +144,7 @@ SQLite Queue
     print(item)  # "data1"
 
 MySQL Queue
-^^^^^^^^^^
+^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -172,7 +172,7 @@ MySQL Queue
     q.task_done()
 
 Async Queue (v1.1.0+)
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -191,7 +191,7 @@ Examples
 --------
 
 File-based Queue
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -205,7 +205,7 @@ File-based Queue
     >>> q.task_done()
 
 SQLite3-based Queue
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -219,7 +219,7 @@ SQLite3-based Queue
     >>> del q
 
 Priority Queue
-^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -236,7 +236,7 @@ Priority Queue
     'low'
 
 Unique Queue
-^^^^^^^^^^^
+^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -251,7 +251,7 @@ Unique Queue
     2
 
 Acknowledgment Queue
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -266,7 +266,7 @@ Acknowledgment Queue
     >>> ackq.ack_failed(item)  # Mark as failed
 
 MySQL Queue
-^^^^^^^^^^
+^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -292,7 +292,7 @@ MySQL Queue
     1
 
 Async Queue (v1.1.0+)
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -316,7 +316,7 @@ Async Queue (v1.1.0+)
     asyncio.run(example())
 
 Persistent Dictionary
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -333,10 +333,10 @@ Persistent Dictionary
     KeyError: 'Key: key1 not exists.'
 
 Multi-threading Usage
---------------------
+---------------------
 
 SQLite3-based Queue
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -361,7 +361,7 @@ SQLite3-based Queue
     q.join()  # Block until all tasks are done
 
 File-based Queue
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -420,7 +420,7 @@ MySQL Queue
     q.join()  # Block until all tasks are done
 
 Serialization Options
---------------------
+---------------------
 
 persist-queue supports multiple serialization protocols:
 
@@ -442,10 +442,10 @@ persist-queue supports multiple serialization protocols:
     >>> q = Queue('mypath', serializer=serializers.json)
 
 Performance
-----------
+-----------
 
 Benchmark Results (1000 items)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Windows (Windows 10, SATA3 SSD, 16GB RAM)**
 
@@ -492,7 +492,7 @@ You can easily benchmark the performance of all queue types (including async) us
 This makes it easy to compare the performance of sync and async queues on your platform.
 
 Performance Tips
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 * **WAL Mode**: SQLite3 queues use WAL mode by default for better performance
 * **auto_commit=False**: Use for batch operations, call ``task_done()`` to persist
@@ -517,7 +517,7 @@ Run tests using tox:
     tox -e cover
 
 Development
-----------
+-----------
 
 Install development dependencies:
 
@@ -533,24 +533,24 @@ Run benchmarks:
     python benchmark/run_benchmark.py 1000
 
 Release Notes
-------------
+-------------
 
 For detailed information about recent changes and updates, see:
 
 * `Release Notes for v1.1 <docs/RELEASE_NOTES/releasenote-1.1.txt>`_ - Major update with async queue enhancements and pytest migration
 
 Known Issues
------------
+------------
 
 * **Windows File Queue**: Atomic operations are experimental. Critical data may become unreadable during ``task_done()`` failures
 * **MySQL Tests**: Require local MySQL service, otherwise skipped automatically
 * **Async Features**: Require Python 3.7+ and asyncio support
 
 Troubleshooting
---------------
+---------------
 
 **Database Locked Error**
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you get ``sqlite3.OperationalError: database is locked``:
 
@@ -558,7 +558,7 @@ If you get ``sqlite3.OperationalError: database is locked``:
 * Ensure you're using ``multithreading=True`` for multi-threaded access
 
 **MySQL Connection Issues**
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you get MySQL connection errors:
 
@@ -568,14 +568,14 @@ If you get MySQL connection errors:
 * For connection pool issues, try increasing ``max_connections`` parameter
 
 **Thread Safety Issues**
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 * Make sure to set ``multithreading=True`` when initializing SQLite queues
 * SQLite3 queues are thoroughly tested in multi-threading environments
 * MySQL queues are thread-safe by default
 
 **Import Errors**
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 * For async features: Install with ``pip install "persist-queue[async]"``
 * For MySQL support: Install with ``pip install "persist-queue[extra]"``
@@ -588,7 +588,7 @@ Community
 * **PyPI**: `Package <https://pypi.python.org/pypi/persist-queue>`_
 
 Contributing
------------
+------------
 
 1. Fork the repository
 2. Create a feature branch
@@ -602,6 +602,6 @@ License
 `BSD License <LICENSE>`_
 
 Contributors
------------
+------------
 
 `View Contributors <https://github.com/peter-wangxu/persist-queue/graphs/contributors>`_
