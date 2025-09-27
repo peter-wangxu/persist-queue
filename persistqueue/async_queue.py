@@ -138,7 +138,7 @@ class AsyncQueue:
 
     async def full(self) -> bool:
         """Check if queue is full."""
-        return await self.qsize() == self.maxsize
+        return self.maxsize > 0 and await self.qsize() == self.maxsize
 
     async def put(self, item: Any, block: bool = True,
                   timeout: Optional[float] = None) -> None:
