@@ -338,6 +338,18 @@ class TestAsyncQueue:
                 await queue.put("item_2", timeout=1.0)
 
     @pytest.mark.asyncio
+    async def test_test_full_queue_without_maxsize(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            queue_path = os.path.join(temp_dir, "test_queue")
+
+            async with AsyncQueue(queue_path, maxsize=0) as queue:
+                assert await queue.full() is False
+                await queue.put("item_1")
+                assert await queue.full() is False
+                await queue.get()
+                assert await queue.full() is False
+
+    @pytest.mark.asyncio
     async def test_empty_queue_behavior(self):
         """Test empty queue behavior with blocking."""
         with tempfile.TemporaryDirectory() as temp_dir:

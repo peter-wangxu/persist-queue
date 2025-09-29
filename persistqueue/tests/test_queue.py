@@ -64,6 +64,14 @@ class TestPersist:
         q.get()
         assert q.full() is False
 
+    def test_full_without_max_size(self, queue_path):
+        q = Queue(queue_path)
+        assert q.full() is False
+        q.put('var1')
+        assert q.full() is False
+        q.get()
+        assert q.full() is False
+
     @pytest.mark.parametrize("serializer", serializer_params)
     def test_open_close_1000(self, queue_path, serializer):
         q = Queue(queue_path, **serializer)

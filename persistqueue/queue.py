@@ -124,7 +124,7 @@ class Queue:
         return self.qsize() == 0
 
     def full(self) -> bool:
-        return self.qsize() == self.maxsize
+        return self.maxsize > 0 and self.qsize() == self.maxsize
 
     def put(self, item: Any, block: bool = True,
             timeout: Optional[float] = None) -> None:
