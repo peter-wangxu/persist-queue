@@ -46,5 +46,5 @@ setup(
         'Programming Language :: Python :: 3.12',
         'Topic :: Software Development :: Libraries'
     ],
-    package_date={'persistqueue': ['py.typed']}
+    package_data={'persistqueue': ['py.typed']}
 )
