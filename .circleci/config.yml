@@ -121,6 +121,36 @@ jobs:
           MYSQL_PASSWORD: passw0rd
     steps: *common_steps
 
+  py313:
+    docker:
+      # Primary container image where all steps run.
+      - image: cimg/python:3.13
+        environment:
+          TOXENV: py313
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
+    steps: *common_steps
+
+  py314:
+    docker:
+      # Primary container image where all steps run.
+      - image: cimg/python:3.14
+        environment:
+          TOXENV: py314
+      # MySQL env for mysql queue tests
+      - image: circleci/mysql:8.0
+        environment:
+          MYSQL_ROOT_PASSWORD: 123456
+          MYSQL_DATABASE: testqueue
+          MYSQL_USER: user
+          MYSQL_PASSWORD: passw0rd
+    steps: *common_steps
+
   pep8:
     docker:
       # Primary container image where all steps run.
@@ -162,4 +192,6 @@ workflows:
       - py310
       - py311
       - py312
+      - py313
+      - py314
       - cover
