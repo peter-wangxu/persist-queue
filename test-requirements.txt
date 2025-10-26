@@ -1,7 +1,7 @@
 tox
 mock>=2.0.0
 flake8>=3.2.1
-eventlet>=0.19.0
+eventlet>=0.40.3
 msgpack>=0.5.6
 cbor2>=5.6.0
 pytest>=6.0.0
