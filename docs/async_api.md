@@ -224,6 +224,20 @@ async def timeout_example():
             await queue.task_done()
 ```
 
+### Cancelling a file-queue put
+
+Cancelling `AsyncQueue.put()` while it is waiting for space does not enqueue
+an item. Once an append starts, cancellation waits for its file operations,
+metadata and queue accounting to finish before raising `CancelledError`.
+Other producers cannot enter the unfinished append in the meantime.
+
+The cancelled item may therefore already be persisted. Cancellation is not a
+rollback or proof that the item was not queued; retrying it can create a
+duplicate. Cancellation from `asyncio.wait_for()` can exceed its timeout
+while disk I/O finishes. Await the cancelled task before closing the queue.
+This does not protect against process termination or recover from underlying
+storage errors.
+
 ### SQLite Queue Example
 
 ```python
