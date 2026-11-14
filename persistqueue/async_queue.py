@@ -9,7 +9,7 @@ import logging
 import os
 import tempfile
 from time import time as _time
-from typing import Any, Optional, Tuple
+from typing import Any, Awaitable, Optional, Tuple
 import aiofiles
 import aiofiles.os
 
@@ -19,6 +19,24 @@ import persistqueue.serializers.pickle
 log = logging.getLogger(__name__)
 
 _EMPTY = object()
+
+
+async def _finish_before_cancelling(operation: Awaitable[Any]) -> Any:
+    """Settle an owned storage operation before propagating cancellation."""
+    task = asyncio.ensure_future(operation)
+    cancelled = None
+    while True:
+        try:
+            result = await asyncio.shield(task)
+            break
+        except asyncio.CancelledError as error:
+            if task.cancelled():
+                raise
+            if cancelled is None:
+                cancelled = error
+    if cancelled is not None:
+        raise cancelled
+    return result
 
 
 async def _truncate_async(fn: str, length: int) -> None:
@@ -142,9 +160,16 @@ class AsyncQueue:
 
     async def put(self, item: Any, block: bool = True,
                   timeout: Optional[float] = None) -> None:
-        """Put item into queue."""
+        """Put item into queue.
+
+        Cancellation while waiting for capacity does not enqueue an item.
+        Once storage work starts, cancellation waits for that work to finish.
+        The item may therefore be persisted even when this method raises
+        CancelledError. Retrying that item may enqueue it twice.
+        """
         async with self._not_full:
-            await self._async_init()
+            if self.info is None:
+                await _finish_before_cancelling(self._async_init())
             # Check for negative timeout first
             if timeout is not None and timeout < 0:
                 raise ValueError("'timeout' must be a non-negative number")
@@ -167,9 +192,13 @@ class AsyncQueue:
                                 self._not_full.wait(), remaining)
                         except asyncio.TimeoutError:
                             raise Full
-            await self._put(item)
-            self.unfinished_tasks += 1
-            self._not_empty.notify()
+            await _finish_before_cancelling(self._put_and_notify(item))
+
+    async def _put_and_notify(self, item: Any) -> None:
+        """Commit storage and accounting while the caller owns the lock."""
+        await self._put(item)
+        self.unfinished_tasks += 1
+        self._not_empty.notify()
 
     async def _put(self, item: Any) -> None:
         """Internal put method."""
